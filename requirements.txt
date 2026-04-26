@@ -1,0 +1,6 @@
+streamlit
+Authlib
+requests
+groq
+resend
+python-dotenv
