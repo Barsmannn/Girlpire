@@ -152,6 +152,9 @@ TRANSLATIONS = {
         "vip_unlocked_message": "Your VIP strategy is unlocked",
         "vip_upgrade_message": "Upgrade to Girlpire VIP to unlock your strategy",
         "pay_with_card": "Pay with Card 💳",
+        "pay_with_crypto": "Pay with Crypto 🪙",
+        "crypto_payment_failed": "Crypto payment failed",
+        "crypto_payment_unavailable": "Add nowpayments.api_key to Streamlit secrets to enable crypto payments.",
         "add_myself_vip": "Add myself to VIP",
         "vip_add_success": "You are now VIP",
         "total_users_metric": "Total Users",
@@ -429,6 +432,9 @@ TRANSLATIONS = {
         "vip_unlocked_message": "VIP stratejinizin kilidi acildi",
         "vip_upgrade_message": "Stratejinizi acmak icin Girlpire VIP'e gecin",
         "pay_with_card": "Kart ile Ode 💳",
+        "pay_with_crypto": "Kripto ile Ode 🪙",
+        "crypto_payment_failed": "Kripto odemesi basarisiz oldu",
+        "crypto_payment_unavailable": "Kripto odemelerini etkinlestirmek icin Streamlit secrets icine nowpayments.api_key ekleyin.",
         "add_myself_vip": "Kendimi VIP Yap",
         "vip_add_success": "Artik VIP'siniz",
         "total_users_metric": "Toplam Kullanici",
@@ -1688,6 +1694,59 @@ def build_checkout_url(email: str) -> str:
     )
 
 
+def get_nowpayments_api_key() -> str:
+    return str(
+        secret_get(
+            "nowpayments",
+            "api_key",
+            default=os.environ.get("NOWPAYMENTS_API_KEY", ""),
+        )
+        or ""
+    ).strip()
+
+
+def build_vip_email_return_url(email: str) -> str:
+    base_url = get_app_url() or "https://girlpire.streamlit.app"
+    split_url = urlsplit(base_url)
+    params = dict(parse_qsl(split_url.query, keep_blank_values=True))
+    params["vip_email"] = email
+    query = urlencode(params, doseq=True)
+    return urlunsplit(
+        (
+            split_url.scheme or "https",
+            split_url.netloc or "girlpire.streamlit.app",
+            split_url.path or "/",
+            query,
+            split_url.fragment,
+        )
+    )
+
+
+def create_crypto_payment(email: str) -> str:
+    api_key = get_nowpayments_api_key()
+    if not api_key or not email:
+        return ""
+
+    url = "https://api.nowpayments.io/v1/invoice"
+    headers = {"x-api-key": api_key}
+    payload = {
+        "price_amount": 19.99,
+        "price_currency": "usd",
+        "order_id": email,
+        "order_description": "Girlpire VIP",
+        "success_url": build_vip_email_return_url(email),
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return ""
+
+    return str(data.get("invoice_url") or "")
+
+
 def build_current_vip_profile(
     financials: dict[str, float | int | str],
 ) -> dict[str, float | int | str]:
@@ -2337,6 +2396,14 @@ def render_paywall(email: str) -> None:
         st.warning(t("vip_upgrade_message"))
     if checkout_url:
         st.markdown(f"[{t('pay_with_card')}]({checkout_url})")
+    if st.button(t("pay_with_crypto"), use_container_width=True):
+        payment_url = create_crypto_payment(email)
+        if payment_url:
+            st.markdown(f"[{t('pay_with_crypto')}]({payment_url})")
+        elif not get_nowpayments_api_key():
+            st.error(t("crypto_payment_unavailable"))
+        else:
+            st.error(t("crypto_payment_failed"))
     render_checkout_button(
         checkout_url,
         t("start_vip_membership"),

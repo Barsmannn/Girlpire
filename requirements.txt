@@ -4,4 +4,5 @@ python-dotenv
 resend
 fastapi
 uvicorn
+requests
 groq
