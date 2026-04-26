@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Request
 import json, os
+import requests
+from fastapi import FastAPI, Request
 
 app = FastAPI()
 
@@ -27,10 +28,22 @@ def add_paid_user(email):
 @app.post("/lemons/webhook")
 async def webhook(request: Request):
     payload = await request.json()
+    print("WEBHOOK PAYLOAD:", payload)
 
-    email = payload.get("data", {}).get("attributes", {}).get("user_email")
+    data = payload.get("data", {}).get("attributes", {})
+
+    email = (
+        data.get("user_email")
+        or data.get("customer_email")
+        or data.get("email")
+    )
+    print("EXTRACTED EMAIL:", email)
 
     if email:
         add_paid_user(email)
+        try:
+            requests.get(f"https://girlpire.streamlit.app/?vip_email={email}")
+        except Exception as e:
+            print("STREAMLIT CALL ERROR:", e)
 
     return {"ok": True}

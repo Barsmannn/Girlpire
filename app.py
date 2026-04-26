@@ -908,6 +908,19 @@ def add_paid_user(email: str) -> bool:
     return write_email_store({"users": users, "paid_users": paid_users})
 
 
+def get_vip_email_param() -> str:
+    params = getattr(st, "query_params", None)
+    if params is None:
+        return ""
+    try:
+        vip_email = params.get("vip_email", "")
+    except Exception:
+        vip_email = ""
+    if isinstance(vip_email, (list, tuple)):
+        vip_email = vip_email[0] if vip_email else ""
+    return str(vip_email).strip().lower()
+
+
 def get_app_url() -> str:
     return str(
         secret_get(
@@ -3081,6 +3094,9 @@ def main() -> None:
 
     current_email = get_current_user_email()
     save_user_email(current_email)
+    vip_email = get_vip_email_param()
+    if vip_email:
+        add_paid_user(vip_email)
     paid_users = load_paid_users()
     is_paid = current_email in paid_users
     st.session_state["premium_unlocked"] = is_paid or check_subscription_status(current_email)
