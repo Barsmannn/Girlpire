@@ -31,6 +31,10 @@ EMAILS_FILE = APP_DIR / "emails.json"
 load_dotenv(dotenv_path=APP_DIR / ".env", override=False)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 APP_TITLE = "Girlpire - OnlyFans Success Portal"
+DEFAULT_LEMONSQUEEZY_CHECKOUT_URL = (
+    "https://girlpire.lemonsqueezy.com/checkout/buy/"
+    "cbeec9a3-c280-4b1b-9123-480d112c5ee9"
+)
 PLATFORM_FEE_RATE = 0.20
 ACTIVE_SUBSCRIPTION_STATES = {"active", "on_trial"}
 LANGUAGE_OPTIONS = {
@@ -147,6 +151,7 @@ TRANSLATIONS = {
         "vip_active": "Girlpire VIP Active",
         "vip_unlocked_message": "Your VIP strategy is unlocked",
         "vip_upgrade_message": "Upgrade to Girlpire VIP to unlock your strategy",
+        "pay_with_card": "Pay with Card 💳",
         "add_myself_vip": "Add myself to VIP",
         "vip_add_success": "You are now VIP",
         "total_users_metric": "Total Users",
@@ -175,7 +180,7 @@ TRANSLATIONS = {
         "monthly_email_button": "Unlock Girlpire VIP",
         "email_test_fallback_used": "No logged-in email found. Sending the test email to the fallback address instead.",
         "checkout_missing": "Add lemonsqueezy.checkout_url to secrets to enable the checkout button.",
-        "payment_notice": "VIP is never unlocked just after login. Access opens only when demo mode, a paid email whitelist, or subscription verification returns true.",
+        "payment_notice": "VIP is unlocked only after a real payment is synced into your paid user list or a verified LemonSqueezy subscription record is found.",
         "vip_title": "VIP Dashboard",
         "vip_desc": "This area is unlocked only for verified subscribers and uses your current calculator values as context.",
         "strategy_dashboard_title": "Your Creator Strategy Dashboard",
@@ -423,6 +428,7 @@ TRANSLATIONS = {
         "vip_active": "Girlpire VIP Aktif",
         "vip_unlocked_message": "VIP stratejinizin kilidi acildi",
         "vip_upgrade_message": "Stratejinizi acmak icin Girlpire VIP'e gecin",
+        "pay_with_card": "Kart ile Ode 💳",
         "add_myself_vip": "Kendimi VIP Yap",
         "vip_add_success": "Artik VIP'siniz",
         "total_users_metric": "Toplam Kullanici",
@@ -451,7 +457,7 @@ TRANSLATIONS = {
         "monthly_email_button": "Girlpire VIPi Ac",
         "email_test_fallback_used": "Giris yapmis e-posta bulunamadi. Test e-postasi yerine yedek adrese gonderiliyor.",
         "checkout_missing": "Odeme butonunu etkinlestirmek icin secrets icine lemonsqueezy.checkout_url ekleyin.",
-        "payment_notice": "VIP, sadece giris yapinca acilmaz. Erisim ancak demo modu, odemeli e-posta listesi veya abonelik dogrulamasi true donerse acilir.",
+        "payment_notice": "VIP yalnizca gercek odeme paid user listenize senkronlandiginda veya dogrulanmis LemonSqueezy abonelik kaydi bulundugunda acilir.",
         "vip_title": "VIP Paneli",
         "vip_desc": "Bu alan yalnizca dogrulanmis aboneler icin acilir ve mevcut hesaplayici degerlerinizi baglam olarak kullanir.",
         "strategy_dashboard_title": "Uretici Strateji Paneliniz",
@@ -804,16 +810,24 @@ def normalize_user_records(items: object) -> list[dict[str, str]]:
     return normalized_records
 
 
+def ensure_emails_file() -> bool:
+    default_data = {"users": [], "paid_users": []}
+    if EMAILS_FILE.exists():
+        return True
+    try:
+        EMAILS_FILE.write_text(
+            json.dumps(default_data, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return True
+    except OSError:
+        return False
+
+
 def ensure_email_store() -> dict[str, object]:
     default_data = {"users": [], "paid_users": []}
-    if not EMAILS_FILE.exists():
-        try:
-            EMAILS_FILE.write_text(
-                json.dumps(default_data, indent=2) + "\n",
-                encoding="utf-8",
-            )
-        except OSError:
-            return default_data
+    if not ensure_emails_file():
+        return default_data
 
     try:
         data = json.loads(EMAILS_FILE.read_text(encoding="utf-8"))
@@ -1624,14 +1638,6 @@ def check_subscription_status(email: str) -> bool:
     if email.lower() in set(load_paid_users()):
         return True
 
-    if bool(secret_get("app", "demo_paid", default=False)):
-        return True
-
-    paid_emails = secret_get("app", "paid_emails", default=[]) or []
-    normalized = {str(item).strip().lower() for item in paid_emails if str(item).strip()}
-    if email.lower() in normalized:
-        return True
-
     try:
         records = fetch_lemonsqueezy_subscriptions(email)
     except Exception:
@@ -1640,17 +1646,23 @@ def check_subscription_status(email: str) -> bool:
 
 
 def build_checkout_url(email: str) -> str:
-    checkout_url = str(secret_get("lemonsqueezy", "checkout_url", default="") or "").strip()
+    checkout_url = str(
+        secret_get(
+            "lemonsqueezy",
+            "checkout_url",
+            default=DEFAULT_LEMONSQUEEZY_CHECKOUT_URL,
+        )
+        or DEFAULT_LEMONSQUEEZY_CHECKOUT_URL
+    ).strip()
     if not checkout_url:
         return ""
 
     split_url = urlsplit(checkout_url)
     params = dict(parse_qsl(split_url.query, keep_blank_values=True))
     if email:
-        params["email"] = email
         params["checkout[email]"] = email
         params["checkout[custom][google_email]"] = email
-        params["checkout[custom][portal]"] = "wolf-ai-vip"
+        params["checkout[custom][portal]"] = "girlpire-vip"
     query = urlencode(params, doseq=True)
     return urlunsplit(
         (
@@ -2308,6 +2320,10 @@ def render_paywall(email: str) -> None:
     st.caption(t("paywall_stack_note"))
 
     checkout_url = build_checkout_url(email)
+    if not st.session_state.get("premium_unlocked", False):
+        st.warning(t("vip_upgrade_message"))
+    if checkout_url:
+        st.markdown(f"[{t('pay_with_card')}]({checkout_url})")
     render_checkout_button(
         checkout_url,
         t("start_vip_membership"),

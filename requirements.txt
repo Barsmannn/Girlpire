@@ -1,5 +1,7 @@
 streamlit
 Authlib
+fastapi
+uvicorn
 requests
 groq
 resend

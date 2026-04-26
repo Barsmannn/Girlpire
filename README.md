@@ -73,3 +73,22 @@ http://localhost:8501/oauth2callback
 4. Add any optional secrets you use, such as LemonSqueezy or Groq keys.
 
 If secrets are missing, the app shows a clear warning instead of crashing.
+
+## Secure LemonSqueezy webhook
+
+The app reads VIP access from `emails.json`. To mark paying users securely, deploy `webhook_server.py` separately on a host such as Render or Fly.io.
+
+Set this environment variable on the webhook host:
+
+```text
+LEMON_WEBHOOK_SECRET=your_webhook_signing_secret
+```
+
+Then in LemonSqueezy:
+
+1. Open `Settings -> Webhooks`
+2. Add your public endpoint, for example:
+   `https://your-app.onrender.com/lemons/webhook`
+3. Copy the LemonSqueezy signing secret into `LEMON_WEBHOOK_SECRET`
+
+This avoids using URL-based VIP unlocks and only grants VIP after a verified webhook event.
