@@ -1,8 +1,8 @@
 streamlit
 Authlib
+python-dotenv
+resend
 fastapi
 uvicorn
 requests
 groq
-resend
-python-dotenv
