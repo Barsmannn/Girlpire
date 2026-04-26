@@ -1,5 +1,5 @@
 import json, os
-import requests
+import urllib.request
 from fastapi import FastAPI, Request
 
 app = FastAPI()
@@ -42,8 +42,8 @@ async def webhook(request: Request):
     if email:
         add_paid_user(email)
         try:
-            requests.get(f"https://girlpire.streamlit.app/?vip_email={email}")
+            urllib.request.urlopen(f"https://girlpire.streamlit.app/?vip_email={email}")
         except Exception as e:
-            print("STREAMLIT CALL ERROR:", e)
+            print("ERROR:", e)
 
     return {"ok": True}
