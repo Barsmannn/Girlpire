@@ -1695,14 +1695,17 @@ def build_checkout_url(email: str) -> str:
 
 
 def get_nowpayments_api_key() -> str:
-    return str(
-        secret_get(
-            "nowpayments",
-            "api_key",
-            default=os.environ.get("NOWPAYMENTS_API_KEY", ""),
-        )
-        or ""
-    ).strip()
+    try:
+        return str(st.secrets["NOWPAYMENTS_API_KEY"] or "").strip()
+    except Exception:
+        return str(
+            secret_get(
+                "nowpayments",
+                "api_key",
+                default=os.environ.get("NOWPAYMENTS_API_KEY", ""),
+            )
+            or ""
+        ).strip()
 
 
 def build_vip_email_return_url(email: str) -> str:
@@ -1734,7 +1737,7 @@ def create_crypto_payment(email: str) -> str:
         "price_currency": "usd",
         "order_id": email,
         "order_description": "Girlpire VIP",
-        "success_url": build_vip_email_return_url(email),
+        "success_url": f"https://girlpire.streamlit.app/?vip_email={email}",
     }
 
     try:
@@ -2396,14 +2399,14 @@ def render_paywall(email: str) -> None:
         st.warning(t("vip_upgrade_message"))
     if checkout_url:
         st.markdown(f"[{t('pay_with_card')}]({checkout_url})")
-    if st.button(t("pay_with_crypto"), use_container_width=True):
+    if st.button("Pay with Crypto 🪙", use_container_width=True):
         payment_url = create_crypto_payment(email)
         if payment_url:
-            st.markdown(f"[{t('pay_with_crypto')}]({payment_url})")
+            st.markdown(f"[Open Crypto Payment]({payment_url})")
         elif not get_nowpayments_api_key():
             st.error(t("crypto_payment_unavailable"))
         else:
-            st.error(t("crypto_payment_failed"))
+            st.error("Crypto payment failed")
     render_checkout_button(
         checkout_url,
         t("start_vip_membership"),
