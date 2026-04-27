@@ -154,7 +154,7 @@ TRANSLATIONS = {
         "pay_with_card": "Pay with Card 💳",
         "pay_with_crypto": "Pay with Crypto 🪙",
         "crypto_payment_failed": "Crypto payment failed",
-        "crypto_payment_unavailable": "Add nowpayments.api_key to Streamlit secrets to enable crypto payments.",
+        "crypto_payment_unavailable": "Add NOWPAYMENTS_API_KEY or nowpayments.api_key to Streamlit secrets to enable crypto payments.",
         "add_myself_vip": "Add myself to VIP",
         "vip_add_success": "You are now VIP",
         "total_users_metric": "Total Users",
@@ -436,7 +436,7 @@ TRANSLATIONS = {
         "pay_with_card": "Kart ile Ode 💳",
         "pay_with_crypto": "Kripto ile Ode 🪙",
         "crypto_payment_failed": "Kripto odemesi basarisiz oldu",
-        "crypto_payment_unavailable": "Kripto odemelerini etkinlestirmek icin Streamlit secrets icine nowpayments.api_key ekleyin.",
+        "crypto_payment_unavailable": "Kripto odemelerini etkinlestirmek icin Streamlit secrets icine NOWPAYMENTS_API_KEY veya nowpayments.api_key ekleyin.",
         "add_myself_vip": "Kendimi VIP Yap",
         "vip_add_success": "Artik VIP'siniz",
         "total_users_metric": "Toplam Kullanici",
@@ -1689,7 +1689,16 @@ def build_checkout_url(email: str) -> str:
 
 
 def get_nowpayments_api_key() -> str:
-    return str(os.environ.get("NOWPAYMENTS_API_KEY", "") or "").strip()
+    candidate_values = (
+        secret_get("NOWPAYMENTS_API_KEY", default=""),
+        secret_get("nowpayments", "api_key", default=""),
+        os.environ.get("NOWPAYMENTS_API_KEY", ""),
+    )
+    for value in candidate_values:
+        normalized = str(value or "").strip()
+        if normalized:
+            return normalized
+    return ""
 
 
 def get_webhook_base_url() -> str:
