@@ -3,13 +3,11 @@ import hmac
 import json
 import os
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 
 app = FastAPI()
 
 DATA_PATH = "emails.json"
-load_dotenv()
 NOWPAYMENTS_IPN_SECRET = os.getenv("NOWPAYMENTS_IPN_SECRET", "")
 
 
