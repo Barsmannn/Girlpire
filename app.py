@@ -4627,11 +4627,14 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
             use_container_width=True,
         )
         if isinstance(strategy_result, dict):
-            tracking_stats = render_tracking_system(
-                tracking_target,
-                tracking_score,
-                tracking_focus,
-            )
+            tracking_stats = {
+                "revenue_growth": 0.0,
+                "growth_percent": 0.0,
+                "progress_percent": 0.0,
+                "current_subscribers": float(st.session_state.get("tracking_current_subscribers", 0)),
+                "current_revenue": float(st.session_state.get("tracking_current_revenue", 0.0)),
+                "new_subscribers": float(st.session_state.get("tracking_subscriber_change", 0)),
+            }
             render_strategy_export(financials, strategy_result, tracking_stats)
 
     elif selected_section == "advanced":
