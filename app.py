@@ -12,7 +12,6 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import requests
 import streamlit as st
-import streamlit.components.v1 as components
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -156,7 +155,10 @@ TRANSLATIONS = {
         "pay_with_crypto": "Pay with Crypto 🪙",
         "open_crypto_payment": "Open Crypto Payment",
         "crypto_payment_ready": "Your crypto payment page is ready below.",
+        "crypto_step_title": "Step 2: Open Your Crypto Checkout",
+        "crypto_step_body": "This checkout flow is mobile and desktop friendly. Tap the button below to continue to the NowPayments payment page.",
         "crypto_payment_manual_hint": "If the payment page did not open automatically, use the button or direct link below.",
+        "crypto_direct_link": "Direct payment link",
         "crypto_payment_failed": "Crypto payment failed",
         "crypto_payment_unavailable": "Add NOWPAYMENTS_API_KEY or nowpayments.api_key to Streamlit secrets to enable crypto payments.",
         "add_myself_vip": "Add myself to VIP",
@@ -441,7 +443,10 @@ TRANSLATIONS = {
         "pay_with_crypto": "Kripto ile Ode 🪙",
         "open_crypto_payment": "Kripto Odemesini Ac",
         "crypto_payment_ready": "Kripto odeme sayfaniz asagida hazir.",
+        "crypto_step_title": "Adim 2: Kripto Odeme Sayfasini Ac",
+        "crypto_step_body": "Bu odeme akisi mobil ve masaustu uyumludur. NowPayments odeme sayfasina gecmek icin asagidaki butona dokunun.",
         "crypto_payment_manual_hint": "Odeme sayfasi otomatik acilmadiysa, asagidaki butonu veya dogrudan linki kullanin.",
+        "crypto_direct_link": "Dogrudan odeme linki",
         "crypto_payment_failed": "Kripto odemesi basarisiz oldu",
         "crypto_payment_unavailable": "Kripto odemelerini etkinlestirmek icin Streamlit secrets icine NOWPAYMENTS_API_KEY veya nowpayments.api_key ekleyin.",
         "add_myself_vip": "Kendimi VIP Yap",
@@ -2413,7 +2418,6 @@ def render_login_gate() -> None:
 
 def render_paywall(email: str) -> None:
     crypto_state_key = f"crypto_payment_url::{email.strip().lower()}"
-    crypto_open_key = f"crypto_payment_open::{email.strip().lower()}"
     if is_upgrade_flow():
         render_note_card(t("upgrade_flow_title"), t("upgrade_paywall_prompt"))
     elif is_from_email():
@@ -2439,6 +2443,7 @@ def render_paywall(email: str) -> None:
     st.caption(t("paywall_stack_note"))
 
     checkout_url = build_checkout_url(email)
+    crypto_checkout_container = st.container()
     if not st.session_state.get("premium_unlocked", False):
         st.warning(t("vip_upgrade_message"))
     if checkout_url:
@@ -2447,7 +2452,6 @@ def render_paywall(email: str) -> None:
         payment_url = create_crypto_payment(email)
         if payment_url:
             st.session_state[crypto_state_key] = payment_url
-            st.session_state[crypto_open_key] = True
             st.success(t("crypto_payment_ready"))
         elif not get_nowpayments_api_key():
             st.error(t("crypto_payment_unavailable"))
@@ -2455,20 +2459,11 @@ def render_paywall(email: str) -> None:
             st.error(t("crypto_payment_failed"))
     saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
     if saved_crypto_url:
-        if st.session_state.get(crypto_open_key, False):
-            safe_url = html.escape(saved_crypto_url, quote=True)
-            components.html(
-                f"""
-                <script>
-                window.open("{safe_url}", "_blank");
-                </script>
-                """,
-                height=0,
-            )
-            st.session_state[crypto_open_key] = False
-        st.info(t("crypto_payment_manual_hint"))
-        st.link_button(t("open_crypto_payment"), saved_crypto_url, use_container_width=True)
-        st.code(saved_crypto_url)
+        with crypto_checkout_container:
+            render_note_card(t("crypto_step_title"), t("crypto_step_body"))
+            st.info(t("crypto_payment_manual_hint"))
+            st.link_button(t("open_crypto_payment"), saved_crypto_url, use_container_width=True)
+            st.markdown(f"**{t('crypto_direct_link')}:** {saved_crypto_url}")
     st.caption(t("vip_sync_notice"))
     if st.button(t("refresh_vip_access"), use_container_width=True):
         sync_paid_user_from_remote(email)
