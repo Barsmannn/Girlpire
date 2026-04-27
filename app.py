@@ -5441,17 +5441,6 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
         else f'<div class="wolf-avatar">{html.escape(initials)}</div>'
     )
 
-    nav_items = []
-    for key, label in section_options.items():
-        target = html.escape(build_app_url_with_params(vip_section=key), quote=True)
-        active_class = "wolf-vip-nav-item wolf-vip-nav-active" if key == selected_section else "wolf-vip-nav-item"
-        nav_items.append(f'<a class="{active_class}" href="{target}" target="_top">{html.escape(label)}</a>')
-
-    logout_target = html.escape(
-        build_app_url_with_params(vip_section=selected_section, vip_action="logout"),
-        quote=True,
-    )
-
     st.markdown(
         f"""
         <div class="wolf-card wolf-vip-sidebar-shell">
@@ -5461,16 +5450,18 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
                 <div class="wolf-vip-sidebar-email">{html.escape(user_email)}</div>
                 <div class="wolf-vip-sidebar-chip">{html.escape(current_focus_label)}</div>
             </div>
-            <div class="wolf-vip-sidebar-nav">
-                {''.join(nav_items)}
-            </div>
-            <div class="wolf-vip-sidebar-bottom">
-                <a class="wolf-vip-nav-item wolf-vip-nav-logout" href="{logout_target}" target="_top">{html.escape(t("logout"))}</a>
-            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    for key, label in section_options.items():
+        button_type = "primary" if key == selected_section else "secondary"
+        if st.button(label, key=f"vip_nav_{key}", use_container_width=True, type=button_type):
+            st.session_state["vip_section"] = key
+            st.rerun()
+
+    st.button(t("logout"), key="vip_nav_logout", use_container_width=True, on_click=st.logout)
 
 
 def render_vip_calculator_section() -> dict[str, float | int | str] | None:
@@ -5945,13 +5936,6 @@ def main() -> None:
     paid_users = load_paid_users()
     is_paid = current_email in paid_users
     st.session_state["premium_unlocked"] = is_paid or check_subscription_status(current_email)
-    render_header()
-    render_logged_in_status()
-    render_email_return_banner(
-        logged_in,
-        bool(st.session_state.get("premium_unlocked", False)),
-        current_email,
-    )
 
     if st.session_state["premium_unlocked"]:
         financials = (
@@ -5967,6 +5951,13 @@ def main() -> None:
             )
         )
     else:
+        render_header()
+        render_logged_in_status()
+        render_email_return_banner(
+            logged_in,
+            bool(st.session_state.get("premium_unlocked", False)),
+            current_email,
+        )
         financials = render_free_calculator()
         if financials:
             render_cta_section(financials)
