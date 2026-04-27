@@ -1562,8 +1562,62 @@ def render_styles() -> None:
             margin: 0.4rem 0 1.25rem;
         }
 
+        .wolf-dashboard-frame {
+            padding: 1rem;
+            border-radius: 32px;
+            border: 1px solid rgba(159, 122, 234, 0.18);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(8, 12, 22, 0.98)),
+                radial-gradient(circle at top center, rgba(159, 122, 234, 0.12), transparent 34%);
+            box-shadow:
+                inset 1px 1px 0 rgba(255, 255, 255, 0.03),
+                inset -14px -14px 34px rgba(3, 6, 14, 0.55),
+                0 28px 70px rgba(3, 6, 15, 0.46);
+            margin-bottom: 1.25rem;
+        }
+
+        .wolf-dashboard-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.95rem 1.15rem;
+            border-radius: 24px;
+            background: #101621;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 1rem;
+        }
+
+        .wolf-dashboard-topbar-title {
+            color: var(--wolf-text);
+            font-size: 1.05rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-topbar-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--wolf-muted);
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .wolf-dashboard-topbar-badge {
+            padding: 0.36rem 0.58rem;
+            border-radius: 12px;
+            border: 1px solid rgba(96, 165, 250, 0.28);
+            color: #b7d4ff;
+            background: rgba(96, 165, 250, 0.08);
+            font-weight: 700;
+        }
+
         .wolf-dashboard-hero,
         .wolf-dashboard-side,
+        .wolf-dashboard-profile,
         .wolf-dashboard-chart,
         .wolf-dashboard-kpi {
             border-radius: 28px;
@@ -1578,6 +1632,11 @@ def render_styles() -> None:
         }
 
         .wolf-dashboard-side {
+            padding: 1rem;
+            min-height: 100%;
+        }
+
+        .wolf-dashboard-profile {
             padding: 1rem;
             min-height: 100%;
         }
@@ -1611,6 +1670,28 @@ def render_styles() -> None:
             background: linear-gradient(135deg, #9f7aea, #f472b6);
             box-shadow: 0 0 18px rgba(244, 114, 182, 0.42);
             flex-shrink: 0;
+        }
+
+        .wolf-dashboard-side-promo {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(159, 122, 234, 0.14);
+        }
+
+        .wolf-dashboard-side-promo-title {
+            color: var(--wolf-text);
+            font-size: 0.95rem;
+            font-weight: 800;
+            margin-bottom: 0.45rem;
+        }
+
+        .wolf-dashboard-side-promo-copy {
+            color: var(--wolf-muted);
+            font-size: 0.9rem;
+            line-height: 1.65;
+            margin: 0;
         }
 
         .wolf-dashboard-hero {
@@ -1672,9 +1753,45 @@ def render_styles() -> None:
             line-height: 1.75;
         }
 
+        .wolf-dashboard-searchbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: 22px;
+            background: #151c29;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 1rem;
+        }
+
+        .wolf-dashboard-searchbar-copy {
+            color: var(--wolf-muted);
+            font-size: 0.92rem;
+        }
+
+        .wolf-dashboard-search-actions {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .wolf-dashboard-search-action {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(159, 122, 234, 0.14);
+            border: 1px solid rgba(159, 122, 234, 0.16);
+            color: #f3d1eb;
+            font-size: 1rem;
+        }
+
         .wolf-dashboard-kpi-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.9rem;
             margin: 0 0 1rem;
         }
@@ -1723,6 +1840,44 @@ def render_styles() -> None:
             color: #d8c9ff;
             font-size: 0.9rem;
             line-height: 1.55;
+        }
+
+        .wolf-dashboard-kpi-inline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.9rem;
+        }
+
+        .wolf-dashboard-ring {
+            --progress: 78%;
+            width: 62px;
+            height: 62px;
+            border-radius: 999px;
+            position: relative;
+            background: conic-gradient(#f472b6 0 var(--progress), rgba(255, 255, 255, 0.08) var(--progress) 100%);
+            flex-shrink: 0;
+        }
+
+        .wolf-dashboard-ring::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border-radius: 999px;
+            background: #121827;
+            box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.35);
+        }
+
+        .wolf-dashboard-ring span {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--wolf-text);
+            font-size: 0.8rem;
+            font-weight: 800;
+            z-index: 1;
         }
 
         .wolf-dashboard-chart {
@@ -1834,6 +1989,122 @@ def render_styles() -> None:
                 inset -10px -10px 30px rgba(4, 7, 14, 0.55);
         }
 
+        .wolf-dashboard-profile-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .wolf-dashboard-profile-avatar,
+        .wolf-dashboard-profile-avatar-img {
+            width: 78px;
+            height: 78px;
+            border-radius: 999px;
+            margin-bottom: 0.8rem;
+        }
+
+        .wolf-dashboard-profile-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(159, 122, 234, 0.26), rgba(244, 114, 182, 0.22));
+            color: var(--wolf-text);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-profile-avatar-img {
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .wolf-dashboard-profile-name {
+            color: var(--wolf-text);
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-profile-role {
+            color: var(--wolf-muted);
+            font-size: 0.84rem;
+            margin-top: 0.25rem;
+        }
+
+        .wolf-dashboard-profile-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.7rem;
+            margin: 1rem 0;
+        }
+
+        .wolf-dashboard-profile-action {
+            min-height: 46px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(159, 122, 234, 0.14);
+            border: 1px solid rgba(159, 122, 234, 0.16);
+            color: #f3d1eb;
+            font-size: 1rem;
+        }
+
+        .wolf-dashboard-profile-section {
+            margin-top: 0.95rem;
+            padding-top: 0.95rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .wolf-dashboard-profile-label {
+            color: #ddd5ff;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 0.55rem;
+        }
+
+        .wolf-dashboard-profile-copy {
+            color: var(--wolf-muted);
+            line-height: 1.65;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .wolf-dashboard-billing {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(159, 122, 234, 0.14);
+        }
+
+        .wolf-dashboard-billing-title {
+            color: var(--wolf-muted);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .wolf-dashboard-billing-value {
+            color: var(--wolf-text);
+            font-size: 1.65rem;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-billing-note {
+            color: #d8c9ff;
+            font-size: 0.88rem;
+            margin-top: 0.45rem;
+        }
+
         .wolf-mini-list {
             margin: 0.2rem 0 0;
             padding-left: 1rem;
@@ -1929,6 +2200,17 @@ def render_styles() -> None:
 
             .wolf-dashboard-chart-header {
                 flex-direction: column;
+            }
+
+            .wolf-dashboard-topbar,
+            .wolf-dashboard-searchbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .wolf-dashboard-search-actions,
+            .wolf-dashboard-topbar-meta {
+                width: 100%;
             }
 
             .wolf-user-meta {
@@ -3489,41 +3771,54 @@ def render_vip_workspace(
     )
     current_month = get_current_month_key()
     user_name = get_current_user_name() or "Creator"
+    user_picture = get_user_claim("picture", "")
+    initials = "".join(part[:1] for part in user_name.split()[:2]).upper() or "GP"
     kpis = [
         (
             t("current_net_income"),
             format_currency(float(snapshot["current_net_income"])),
             str(snapshot["status"]),
             "is-purple",
+            f"{int(snapshot['score'])}%",
         ),
         (
             t("dashboard_card_growth"),
             format_currency(float(snapshot["gap_value"])),
             t("target_income_metric"),
             "is-pink",
+            current_month,
         ),
         (
             t("dashboard_card_margin"),
             f"{margin:.0f}%",
             t("net_income"),
             "is-blue",
+            f"{margin:.0f}%",
         ),
         (
             t("dashboard_card_arppu"),
             format_currency(arppu),
             t("dashboard_card_focus") + f": {current_focus}",
             "is-purple",
+            f"{min(max(int(arppu * 6), 18), 96)}%",
         ),
     ]
     kpi_cards = "".join(
         f"""
         <div class="wolf-dashboard-kpi {variant}">
-            <div class="wolf-dashboard-kpi-label">{html.escape(label)}</div>
-            <div class="wolf-dashboard-kpi-value">{html.escape(value)}</div>
+            <div class="wolf-dashboard-kpi-inline">
+                <div>
+                    <div class="wolf-dashboard-kpi-label">{html.escape(label)}</div>
+                    <div class="wolf-dashboard-kpi-value">{html.escape(value)}</div>
+                </div>
+                <div class="wolf-dashboard-ring" style="--progress: {html.escape(progress)};">
+                    <span>{html.escape(progress)}</span>
+                </div>
+            </div>
             <div class="wolf-dashboard-kpi-note">{html.escape(note)}</div>
         </div>
         """
-        for label, value, note, variant in kpis
+        for label, value, note, variant, progress in kpis
     )
     nav_labels = [
         t("dashboard_nav_strategy"),
@@ -3540,17 +3835,27 @@ def render_vip_workspace(
         """
         for label in nav_labels
     )
+    profile_avatar = (
+        f'<img class="wolf-dashboard-profile-avatar-img" src="{html.escape(user_picture, quote=True)}" alt="{html.escape(user_name)}" />'
+        if user_picture
+        else f'<div class="wolf-dashboard-profile-avatar">{html.escape(initials)}</div>'
+    )
     st.markdown(
         f"""
-        <div class="wolf-dashboard-shell">
-            <div class="wolf-dashboard-kpi-grid">
-                {kpi_cards}
+        <div class="wolf-dashboard-frame">
+            <div class="wolf-dashboard-topbar">
+                <div class="wolf-dashboard-topbar-title">{html.escape(t("vip_title"))}</div>
+                <div class="wolf-dashboard-topbar-meta">
+                    <span>{html.escape(t("dashboard_workspace"))}</span>
+                    <span>{html.escape(current_month)}</span>
+                    <span class="wolf-dashboard-topbar-badge">VIP</span>
+                </div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    side_col, main_col = st.columns([0.88, 2.12], gap="large")
+    side_col, main_col, profile_col = st.columns([0.78, 1.95, 0.92], gap="large")
     with side_col:
         st.markdown(
             f"""
@@ -3559,6 +3864,10 @@ def render_vip_workspace(
                 <p class="wolf-muted">{html.escape(t("dashboard_workspace_body"))}</p>
                 <div class="wolf-dashboard-nav">
                     {nav_items}
+                </div>
+                <div class="wolf-dashboard-side-promo">
+                    <div class="wolf-dashboard-side-promo-title">{html.escape(t("dashboard_focus_chip"))}</div>
+                    <p class="wolf-dashboard-side-promo-copy">{html.escape(current_focus)}</p>
                 </div>
             </div>
             """,
@@ -3580,21 +3889,39 @@ def render_vip_workspace(
             unsafe_allow_html=True,
         )
         st.markdown(
-            f"""
-            <div class="wolf-dashboard-chart">
-                <div class="wolf-dashboard-chart-header">
-                    <div>
-                        <div class="wolf-dashboard-chart-title">{html.escape(t("dashboard_chart_title"))}</div>
-                        <p class="wolf-dashboard-chart-copy">{html.escape(str(snapshot["explanation"]))}</p>
-                    </div>
-                    <div class="wolf-dashboard-pills">
-                        <div class="wolf-dashboard-pill">30D</div>
-                        <div class="wolf-dashboard-pill">90D</div>
-                        <div class="wolf-dashboard-pill is-active">VIP</div>
-                    </div>
+            """
+            <div class="wolf-dashboard-searchbar">
+                <div class="wolf-dashboard-searchbar-copy">Search insights, pricing ideas or monthly targets</div>
+                <div class="wolf-dashboard-search-actions">
+                    <div class="wolf-dashboard-search-action">&#9906;</div>
+                    <div class="wolf-dashboard-search-action">&#10022;</div>
+                    <div class="wolf-dashboard-search-action">&#128276;</div>
                 </div>
-                <div class="wolf-dashboard-visual">
-                    <div class="wolf-dashboard-line"></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"""
+            <div class="wolf-dashboard-shell">
+                <div class="wolf-dashboard-kpi-grid">
+                    {kpi_cards}
+                </div>
+                <div class="wolf-dashboard-chart">
+                    <div class="wolf-dashboard-chart-header">
+                        <div>
+                            <div class="wolf-dashboard-chart-title">{html.escape(t("dashboard_chart_title"))}</div>
+                            <p class="wolf-dashboard-chart-copy">{html.escape(str(snapshot["explanation"]))}</p>
+                        </div>
+                        <div class="wolf-dashboard-pills">
+                            <div class="wolf-dashboard-pill">30D</div>
+                            <div class="wolf-dashboard-pill">90D</div>
+                            <div class="wolf-dashboard-pill is-active">VIP</div>
+                        </div>
+                    </div>
+                    <div class="wolf-dashboard-visual">
+                        <div class="wolf-dashboard-line"></div>
+                    </div>
                 </div>
             </div>
             """,
@@ -3615,6 +3942,37 @@ def render_vip_workspace(
                 t("dashboard_nav_membership"),
                 f"{t('strategy_score')}: {int(snapshot['score'])}/100 • {t('focus_of_month')}: {current_focus}",
             )
+    with profile_col:
+        st.markdown(
+            f"""
+            <div class="wolf-dashboard-profile">
+                <div class="wolf-dashboard-profile-top">
+                    {profile_avatar}
+                    <div class="wolf-dashboard-profile-name">{html.escape(user_name)}</div>
+                    <div class="wolf-dashboard-profile-role">{html.escape(t("vip_title"))}</div>
+                </div>
+                <div class="wolf-dashboard-profile-actions">
+                    <div class="wolf-dashboard-profile-action">&#128200;</div>
+                    <div class="wolf-dashboard-profile-action">&#128172;</div>
+                    <div class="wolf-dashboard-profile-action">&#10022;</div>
+                </div>
+                <div class="wolf-dashboard-profile-section">
+                    <div class="wolf-dashboard-profile-label">{html.escape(t("dashboard_focus_chip"))}</div>
+                    <p class="wolf-dashboard-profile-copy">{html.escape(current_focus)}</p>
+                </div>
+                <div class="wolf-dashboard-profile-section">
+                    <div class="wolf-dashboard-profile-label">{html.escape(t("dashboard_sync_chip"))}</div>
+                    <p class="wolf-dashboard-profile-copy">{html.escape(t("dashboard_workspace_body"))}</p>
+                </div>
+                <div class="wolf-dashboard-billing">
+                    <div class="wolf-dashboard-billing-title">{html.escape(t("target_income_metric"))}</div>
+                    <div class="wolf-dashboard-billing-value">{html.escape(format_currency(float(snapshot["target_income"])))}</div>
+                    <div class="wolf-dashboard-billing-note">{html.escape(t("gap_to_target"))}: {html.escape(format_currency(float(snapshot["gap_value"])))}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_structured_strategy(strategy_result: dict[str, object]) -> None:
