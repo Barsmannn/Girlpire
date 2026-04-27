@@ -1129,50 +1129,32 @@ def render_styles() -> None:
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
-
         :root {
             --wolf-bg: #0b0f19;
-            --wolf-surface: rgba(17, 23, 38, 0.88);
-            --wolf-surface-soft: rgba(24, 32, 54, 0.88);
+            --wolf-surface: #121827;
+            --wolf-surface-soft: #182032;
             --wolf-primary: #9f7aea;
-            --wolf-primary-strong: #c084fc;
             --wolf-accent: #f472b6;
             --wolf-text: #e6eaf2;
             --wolf-muted: #a3afc3;
             --wolf-border: rgba(159, 122, 234, 0.26);
-            --wolf-border-strong: rgba(244, 114, 182, 0.30);
             --wolf-shadow: 0 26px 90px rgba(3, 6, 15, 0.45);
         }
 
         html, body, [class*="css"] {
-            font-family: "Manrope", "DM Sans", "Segoe UI", sans-serif;
+            font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
         }
 
         .stApp {
             background:
-                radial-gradient(circle at top left, rgba(159, 122, 234, 0.24), transparent 34%),
-                radial-gradient(circle at top right, rgba(244, 114, 182, 0.14), transparent 28%),
+                radial-gradient(circle at top left, rgba(159, 122, 234, 0.20), transparent 34%),
+                radial-gradient(circle at top right, rgba(244, 114, 182, 0.10), transparent 28%),
                 linear-gradient(180deg, #0b0f19 0%, #0e1320 48%, #0a0f1a 100%);
             color: var(--wolf-text);
-            position: relative;
-        }
-
-        .stApp::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(circle at 12% 12%, rgba(159, 122, 234, 0.11), transparent 24%),
-                radial-gradient(circle at 88% 18%, rgba(244, 114, 182, 0.10), transparent 18%),
-                radial-gradient(circle at 50% 100%, rgba(95, 70, 170, 0.12), transparent 30%);
-            z-index: 0;
         }
 
         [data-testid="stHeader"] {
             background: rgba(11, 15, 25, 0.72);
-            backdrop-filter: blur(14px);
             border-bottom: 1px solid rgba(159, 122, 234, 0.14);
         }
 
@@ -1189,8 +1171,6 @@ def render_styles() -> None:
             max-width: 1180px;
             padding-top: 1rem;
             padding-bottom: 3rem;
-            position: relative;
-            z-index: 1;
         }
 
         h1, h2, h3, h4 {
@@ -1271,8 +1251,7 @@ def render_styles() -> None:
             border: 1px solid var(--wolf-border);
             background:
                 linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(16, 22, 38, 0.94)),
-                linear-gradient(135deg, rgba(159, 122, 234, 0.10), rgba(244, 114, 182, 0.04));
-            backdrop-filter: blur(18px);
+                linear-gradient(135deg, rgba(159, 122, 234, 0.08), rgba(244, 114, 182, 0.03));
             box-shadow: var(--wolf-shadow);
             animation: wolfFadeUp 0.45s ease both;
         }
@@ -1287,21 +1266,7 @@ def render_styles() -> None:
         }
 
         .wolf-hero {
-            position: relative;
-            overflow: hidden;
             padding: clamp(1.35rem, 4vw, 2.4rem);
-        }
-
-        .wolf-hero::after {
-            content: "";
-            position: absolute;
-            inset: auto -8% -28% auto;
-            width: 240px;
-            height: 240px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(244, 114, 182, 0.24), transparent 68%);
-            pointer-events: none;
-            filter: blur(10px);
         }
 
         .wolf-card,
@@ -1343,20 +1308,9 @@ def render_styles() -> None:
         }
 
         .wolf-metric {
-            position: relative;
-            overflow: hidden;
             padding: 1.15rem;
             margin-bottom: 1rem;
             min-height: 164px;
-        }
-
-        .wolf-metric::after {
-            content: "";
-            position: absolute;
-            inset: 0 auto auto 0;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(159, 122, 234, 0.75), rgba(244, 114, 182, 0.06));
         }
 
         .wolf-brand {
