@@ -55,6 +55,21 @@ TRANSLATIONS = {
         "brand": "Girlpire",
         "hero_title": "Calculate Your Global Potential",
         "hero_subtitle": "Business-focused creator growth platform",
+        "dashboard_workspace": "VIP Workspace",
+        "dashboard_welcome": "Welcome back, {name}",
+        "dashboard_workspace_body": "A premium revenue command center for creators and agencies focused on pricing, retention and scalable monthly growth.",
+        "dashboard_focus_chip": "Focus of the month",
+        "dashboard_sync_chip": "Live revenue view",
+        "dashboard_nav_strategy": "Strategy Engine",
+        "dashboard_nav_tracking": "Progress Tracking",
+        "dashboard_nav_assets": "VIP Assets",
+        "dashboard_nav_membership": "Membership Status",
+        "dashboard_card_growth": "Growth Signal",
+        "dashboard_card_margin": "Margin Quality",
+        "dashboard_card_arppu": "Revenue Per Fan",
+        "dashboard_card_focus": "Current Priority",
+        "dashboard_chart_title": "Monthly Performance Map",
+        "dashboard_chart_body": "Use this workspace to identify where revenue is leaking, what to optimize next and how close you are to your next monthly target.",
         "language": "Language",
         "logged_in_as": "Logged in as",
         "logout": "Logout",
@@ -353,6 +368,21 @@ TRANSLATIONS = {
         "brand": "Girlpire",
         "hero_title": "Global Potansiyelinizi Hesaplayin",
         "hero_subtitle": "Is odakli uretici buyume platformu",
+        "dashboard_workspace": "VIP Calisma Alani",
+        "dashboard_welcome": "Tekrar hos geldin, {name}",
+        "dashboard_workspace_body": "Fiyatlama, retention ve olceklenebilir aylik buyumeye odaklanan ureticiler ve ajanslar icin premium gelir kontrol merkezi.",
+        "dashboard_focus_chip": "Ayin odagi",
+        "dashboard_sync_chip": "Canli gelir gorunumu",
+        "dashboard_nav_strategy": "Strateji Motoru",
+        "dashboard_nav_tracking": "Ilerleme Takibi",
+        "dashboard_nav_assets": "VIP Varliklari",
+        "dashboard_nav_membership": "Uyelik Durumu",
+        "dashboard_card_growth": "Buyume Sinyali",
+        "dashboard_card_margin": "Marj Kalitesi",
+        "dashboard_card_arppu": "Fan Basina Gelir",
+        "dashboard_card_focus": "Mevcut Oncelik",
+        "dashboard_chart_title": "Aylik Performans Haritasi",
+        "dashboard_chart_body": "Bu alani gelirin nerede sizdigini, sirada neyin optimize edilmesi gerektigini ve bir sonraki aylik hedefe ne kadar yakin oldugunu gormek icin kullan.",
         "language": "Dil",
         "logged_in_as": "Giris yapan kullanici",
         "logout": "Cikis Yap",
@@ -1200,6 +1230,7 @@ def render_styles() -> None:
         }
 
         .stButton > button,
+        .stFormSubmitButton > button,
         .stDownloadButton > button,
         .stLinkButton > a {
             width: 100%;
@@ -1215,6 +1246,7 @@ def render_styles() -> None:
         }
 
         .stButton > button:hover,
+        .stFormSubmitButton > button:hover,
         .stDownloadButton > button:hover,
         .stLinkButton > a:hover {
             transform: translateY(-1px);
@@ -1223,12 +1255,17 @@ def render_styles() -> None:
         }
 
         .stButton > button:focus,
+        .stFormSubmitButton > button:focus,
         .stDownloadButton > button:focus,
         .stLinkButton > a:focus {
             box-shadow:
                 0 0 0 1px rgba(255, 255, 255, 0.04),
                 0 0 0 4px rgba(159, 122, 234, 0.20),
                 0 18px 44px rgba(159, 122, 234, 0.28);
+        }
+
+        .stFormSubmitButton > button {
+            color: #0b0f19 !important;
         }
 
         div[data-baseweb="select"] > div,
@@ -1521,6 +1558,293 @@ def render_styles() -> None:
             margin-bottom: 0.55rem;
         }
 
+        .wolf-dashboard-shell {
+            margin: 0.4rem 0 1.25rem;
+        }
+
+        .wolf-dashboard-hero,
+        .wolf-dashboard-side,
+        .wolf-dashboard-chart,
+        .wolf-dashboard-kpi {
+            border-radius: 28px;
+            border: 1px solid rgba(159, 122, 234, 0.22);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(13, 18, 30, 0.97)),
+                linear-gradient(135deg, rgba(159, 122, 234, 0.16), rgba(244, 114, 182, 0.06));
+            box-shadow:
+                inset 1px 1px 0 rgba(255, 255, 255, 0.04),
+                inset -10px -10px 30px rgba(4, 7, 14, 0.55),
+                0 24px 60px rgba(2, 5, 12, 0.45);
+        }
+
+        .wolf-dashboard-side {
+            padding: 1rem;
+            min-height: 100%;
+        }
+
+        .wolf-dashboard-side .wolf-inline-title {
+            margin-bottom: 0.8rem;
+        }
+
+        .wolf-dashboard-nav {
+            display: grid;
+            gap: 0.65rem;
+            margin-top: 0.9rem;
+        }
+
+        .wolf-dashboard-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 0.95rem;
+            border-radius: 18px;
+            border: 1px solid rgba(159, 122, 234, 0.14);
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--wolf-text);
+            font-weight: 600;
+        }
+
+        .wolf-dashboard-nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #9f7aea, #f472b6);
+            box-shadow: 0 0 18px rgba(244, 114, 182, 0.42);
+            flex-shrink: 0;
+        }
+
+        .wolf-dashboard-hero {
+            padding: 1.25rem;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .wolf-dashboard-hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -35% auto;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(244, 114, 182, 0.28), transparent 62%);
+            opacity: 0.9;
+        }
+
+        .wolf-dashboard-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .wolf-dashboard-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.5rem 0.82rem;
+            border-radius: 999px;
+            border: 1px solid rgba(159, 122, 234, 0.18);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ddd5ff;
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .wolf-dashboard-hero-title {
+            position: relative;
+            z-index: 1;
+            margin: 0 0 0.45rem;
+            font-size: clamp(1.7rem, 4vw, 2.5rem);
+            line-height: 1.05;
+            color: var(--wolf-text);
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-hero-body {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            max-width: 54ch;
+            color: var(--wolf-muted);
+            line-height: 1.75;
+        }
+
+        .wolf-dashboard-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin: 0 0 1rem;
+        }
+
+        .wolf-dashboard-kpi {
+            padding: 1rem;
+            min-height: 154px;
+        }
+
+        .wolf-dashboard-kpi.is-purple {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(12, 17, 30, 0.97)),
+                linear-gradient(135deg, rgba(135, 92, 255, 0.36), rgba(135, 92, 255, 0.06));
+        }
+
+        .wolf-dashboard-kpi.is-pink {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(12, 17, 30, 0.97)),
+                linear-gradient(135deg, rgba(244, 114, 182, 0.28), rgba(159, 122, 234, 0.06));
+        }
+
+        .wolf-dashboard-kpi.is-blue {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(12, 17, 30, 0.97)),
+                linear-gradient(135deg, rgba(96, 165, 250, 0.22), rgba(159, 122, 234, 0.04));
+        }
+
+        .wolf-dashboard-kpi-label {
+            color: #c9d2e4;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+        }
+
+        .wolf-dashboard-kpi-value {
+            color: var(--wolf-text);
+            font-size: clamp(1.55rem, 4vw, 2.25rem);
+            font-weight: 800;
+            line-height: 1.05;
+        }
+
+        .wolf-dashboard-kpi-note {
+            margin-top: 0.8rem;
+            color: #d8c9ff;
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .wolf-dashboard-chart {
+            padding: 1.15rem;
+            margin-bottom: 1rem;
+        }
+
+        .wolf-dashboard-chart-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .wolf-dashboard-chart-title {
+            margin: 0 0 0.35rem;
+            color: var(--wolf-text);
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-chart-copy {
+            margin: 0;
+            color: var(--wolf-muted);
+            max-width: 56ch;
+            line-height: 1.7;
+        }
+
+        .wolf-dashboard-pills {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.3rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(159, 122, 234, 0.18);
+        }
+
+        .wolf-dashboard-pill {
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            color: var(--wolf-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .wolf-dashboard-pill.is-active {
+            background: linear-gradient(135deg, rgba(159, 122, 234, 0.8), rgba(244, 114, 182, 0.7));
+            color: #0b0f19;
+        }
+
+        .wolf-dashboard-visual {
+            position: relative;
+            height: 220px;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at 50% 68%, rgba(159, 122, 234, 0.18), transparent 34%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(5, 8, 15, 0.28));
+            overflow: hidden;
+        }
+
+        .wolf-dashboard-visual::before {
+            content: "";
+            position: absolute;
+            inset: 18px 18px 18px 18px;
+            background:
+                linear-gradient(transparent 24%, rgba(255, 255, 255, 0.05) 25%, transparent 26%),
+                linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, 0.05) 25%, transparent 26%);
+            background-size: 100% 52px, 84px 100%;
+            opacity: 0.5;
+        }
+
+        .wolf-dashboard-line {
+            position: absolute;
+            inset: auto 8% 22% 8%;
+            height: 58%;
+            border-radius: 24px;
+            background: linear-gradient(180deg, rgba(159, 122, 234, 0.16), rgba(159, 122, 234, 0.02));
+            clip-path: polygon(0% 72%, 10% 82%, 22% 42%, 34% 58%, 45% 32%, 58% 48%, 71% 26%, 83% 38%, 100% 12%, 100% 100%, 0% 100%);
+            border: 1px solid rgba(159, 122, 234, 0.16);
+        }
+
+        .wolf-dashboard-line::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            clip-path: polygon(0% 72%, 10% 82%, 22% 42%, 34% 58%, 45% 32%, 58% 48%, 71% 26%, 83% 38%, 100% 12%);
+            border-top: 3px solid #a855f7;
+            filter: drop-shadow(0 0 18px rgba(168, 85, 247, 0.65));
+        }
+
+        .wolf-dashboard-bottom-row {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .wolf-dashboard-mini-panel {
+            border-radius: 24px;
+            border: 1px solid rgba(159, 122, 234, 0.2);
+            padding: 1rem;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(12, 17, 30, 0.96)),
+                linear-gradient(135deg, rgba(159, 122, 234, 0.14), rgba(244, 114, 182, 0.04));
+            box-shadow:
+                inset 1px 1px 0 rgba(255, 255, 255, 0.04),
+                inset -10px -10px 30px rgba(4, 7, 14, 0.55);
+        }
+
+        .wolf-mini-list {
+            margin: 0.2rem 0 0;
+            padding-left: 1rem;
+            color: var(--wolf-text);
+            line-height: 1.8;
+        }
+
+        .wolf-mini-list li + li {
+            margin-top: 0.35rem;
+        }
+
         [data-testid="stAlert"] {
             border-radius: 20px;
             border: 1px solid rgba(159, 122, 234, 0.20);
@@ -1598,11 +1922,21 @@ def render_styles() -> None:
                 grid-template-columns: 1fr;
             }
 
+            .wolf-dashboard-kpi-grid,
+            .wolf-dashboard-bottom-row {
+                grid-template-columns: 1fr;
+            }
+
+            .wolf-dashboard-chart-header {
+                flex-direction: column;
+            }
+
             .wolf-user-meta {
                 align-items: flex-start;
             }
 
             .stButton > button,
+            .stFormSubmitButton > button,
             .stDownloadButton > button,
             .stLinkButton > a {
                 min-height: 3.1rem;
@@ -3141,6 +3475,148 @@ def render_strategy_dashboard(snapshot: dict[str, float | int | str]) -> None:
     render_note_card(t("strategy_score"), str(snapshot["explanation"]))
 
 
+def render_vip_workspace(
+    snapshot: dict[str, float | int | str],
+    financials: dict[str, float | int | str],
+    current_focus: str,
+) -> None:
+    follower_count = max(int(st.session_state.get("follower_count", 0)), 1)
+    arppu = float(financials["gross_income"]) / follower_count if follower_count > 0 else 0.0
+    margin = (
+        (float(financials["net_income"]) / float(financials["gross_income"])) * 100
+        if float(financials["gross_income"]) > 0
+        else 0.0
+    )
+    current_month = get_current_month_key()
+    user_name = get_current_user_name() or "Creator"
+    kpis = [
+        (
+            t("current_net_income"),
+            format_currency(float(snapshot["current_net_income"])),
+            str(snapshot["status"]),
+            "is-purple",
+        ),
+        (
+            t("dashboard_card_growth"),
+            format_currency(float(snapshot["gap_value"])),
+            t("target_income_metric"),
+            "is-pink",
+        ),
+        (
+            t("dashboard_card_margin"),
+            f"{margin:.0f}%",
+            t("net_income"),
+            "is-blue",
+        ),
+        (
+            t("dashboard_card_arppu"),
+            format_currency(arppu),
+            t("dashboard_card_focus") + f": {current_focus}",
+            "is-purple",
+        ),
+    ]
+    kpi_cards = "".join(
+        f"""
+        <div class="wolf-dashboard-kpi {variant}">
+            <div class="wolf-dashboard-kpi-label">{html.escape(label)}</div>
+            <div class="wolf-dashboard-kpi-value">{html.escape(value)}</div>
+            <div class="wolf-dashboard-kpi-note">{html.escape(note)}</div>
+        </div>
+        """
+        for label, value, note, variant in kpis
+    )
+    nav_labels = [
+        t("dashboard_nav_strategy"),
+        t("dashboard_nav_tracking"),
+        t("dashboard_nav_assets"),
+        t("dashboard_nav_membership"),
+    ]
+    nav_items = "".join(
+        f"""
+        <div class="wolf-dashboard-nav-item">
+            <span class="wolf-dashboard-nav-dot"></span>
+            <span>{html.escape(label)}</span>
+        </div>
+        """
+        for label in nav_labels
+    )
+    st.markdown(
+        f"""
+        <div class="wolf-dashboard-shell">
+            <div class="wolf-dashboard-kpi-grid">
+                {kpi_cards}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    side_col, main_col = st.columns([0.88, 2.12], gap="large")
+    with side_col:
+        st.markdown(
+            f"""
+            <div class="wolf-dashboard-side">
+                <div class="wolf-inline-title">{html.escape(t("dashboard_workspace"))}</div>
+                <p class="wolf-muted">{html.escape(t("dashboard_workspace_body"))}</p>
+                <div class="wolf-dashboard-nav">
+                    {nav_items}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with main_col:
+        st.markdown(
+            f"""
+            <div class="wolf-dashboard-hero">
+                <div class="wolf-dashboard-chip-row">
+                    <div class="wolf-dashboard-chip">{html.escape(t("dashboard_focus_chip"))}: {html.escape(current_focus)}</div>
+                    <div class="wolf-dashboard-chip">{html.escape(t("dashboard_sync_chip"))}</div>
+                    <div class="wolf-dashboard-chip">{html.escape(current_month)}</div>
+                </div>
+                <h2 class="wolf-dashboard-hero-title">{html.escape(t("dashboard_welcome").format(name=user_name))}</h2>
+                <p class="wolf-dashboard-hero-body">{html.escape(t("dashboard_chart_body"))}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"""
+            <div class="wolf-dashboard-chart">
+                <div class="wolf-dashboard-chart-header">
+                    <div>
+                        <div class="wolf-dashboard-chart-title">{html.escape(t("dashboard_chart_title"))}</div>
+                        <p class="wolf-dashboard-chart-copy">{html.escape(str(snapshot["explanation"]))}</p>
+                    </div>
+                    <div class="wolf-dashboard-pills">
+                        <div class="wolf-dashboard-pill">30D</div>
+                        <div class="wolf-dashboard-pill">90D</div>
+                        <div class="wolf-dashboard-pill is-active">VIP</div>
+                    </div>
+                </div>
+                <div class="wolf-dashboard-visual">
+                    <div class="wolf-dashboard-line"></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        mini_left, mini_right = st.columns(2, gap="large")
+        with mini_left:
+            render_list_card(
+                t("dashboard_nav_strategy"),
+                [
+                    t("immediate_fix_title"),
+                    t("revenue_optimization_title"),
+                    t("growth_focus_section"),
+                ],
+            )
+        with mini_right:
+            render_note_card(
+                t("dashboard_nav_membership"),
+                f"{t('strategy_score')}: {int(snapshot['score'])}/100 • {t('focus_of_month')}: {current_focus}",
+            )
+
+
 def render_structured_strategy(strategy_result: dict[str, object]) -> None:
     warning = strategy_result.get("warning")
     if warning:
@@ -3486,8 +3962,11 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
         dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
 
     strategy_result = st.session_state.get("strategy_result")
+    current_focus_label = get_focus_of_month(float(financials["net_income"]))
     if strategy_result:
         dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, strategy_result)
+        current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
+    render_vip_workspace(dashboard_snapshot, financials, current_focus_label)
     render_strategy_dashboard(dashboard_snapshot)
     if strategy_result:
         render_structured_strategy(strategy_result)
