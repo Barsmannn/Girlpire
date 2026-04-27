@@ -153,6 +153,8 @@ TRANSLATIONS = {
         "vip_upgrade_message": "Upgrade to Girlpire VIP to unlock your strategy",
         "pay_with_card": "Pay with Card 💳",
         "pay_with_crypto": "Pay with Crypto 🪙",
+        "open_crypto_payment": "Open Crypto Payment",
+        "crypto_payment_ready": "Your crypto payment page is ready below.",
         "crypto_payment_failed": "Crypto payment failed",
         "crypto_payment_unavailable": "Add NOWPAYMENTS_API_KEY or nowpayments.api_key to Streamlit secrets to enable crypto payments.",
         "add_myself_vip": "Add myself to VIP",
@@ -435,6 +437,8 @@ TRANSLATIONS = {
         "vip_upgrade_message": "Stratejinizi acmak icin Girlpire VIP'e gecin",
         "pay_with_card": "Kart ile Ode 💳",
         "pay_with_crypto": "Kripto ile Ode 🪙",
+        "open_crypto_payment": "Kripto Odemesini Ac",
+        "crypto_payment_ready": "Kripto odeme sayfaniz asagida hazir.",
         "crypto_payment_failed": "Kripto odemesi basarisiz oldu",
         "crypto_payment_unavailable": "Kripto odemelerini etkinlestirmek icin Streamlit secrets icine NOWPAYMENTS_API_KEY veya nowpayments.api_key ekleyin.",
         "add_myself_vip": "Kendimi VIP Yap",
@@ -2405,6 +2409,7 @@ def render_login_gate() -> None:
 
 
 def render_paywall(email: str) -> None:
+    crypto_state_key = f"crypto_payment_url::{email.strip().lower()}"
     if is_upgrade_flow():
         render_note_card(t("upgrade_flow_title"), t("upgrade_paywall_prompt"))
     elif is_from_email():
@@ -2434,14 +2439,18 @@ def render_paywall(email: str) -> None:
         st.warning(t("vip_upgrade_message"))
     if checkout_url:
         st.markdown(f"[{t('pay_with_card')}]({checkout_url})")
-    if st.button("Pay with Crypto 🪙", use_container_width=True):
+    if st.button(t("pay_with_crypto"), use_container_width=True):
         payment_url = create_crypto_payment(email)
         if payment_url:
-            st.markdown(f"[Open Crypto Payment]({payment_url})")
+            st.session_state[crypto_state_key] = payment_url
+            st.success(t("crypto_payment_ready"))
         elif not get_nowpayments_api_key():
             st.error(t("crypto_payment_unavailable"))
         else:
-            st.error("Crypto payment failed")
+            st.error(t("crypto_payment_failed"))
+    saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
+    if saved_crypto_url:
+        st.link_button(t("open_crypto_payment"), saved_crypto_url, use_container_width=True)
     st.caption(t("vip_sync_notice"))
     if st.button(t("refresh_vip_access"), use_container_width=True):
         sync_paid_user_from_remote(email)
