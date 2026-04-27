@@ -1729,9 +1729,7 @@ def render_google_login_screen() -> None:
         """,
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="wolf-login-actions">', unsafe_allow_html=True)
     st.button(t("continue_google"), on_click=lambda: st.login("google"), use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown(
         f'<div class="wolf-preview-grid">{preview_cards}</div>',
         unsafe_allow_html=True,
@@ -2843,15 +2841,9 @@ def render_free_calculator() -> dict[str, float | int | str] | None:
 
 
 def render_cta_section(financials: dict[str, float | int | str]) -> None:
-    st.markdown('<div class="wolf-card">', unsafe_allow_html=True)
-    st.markdown(f"### {t('cta_title')}")
-    st.markdown(
-        f'<p class="wolf-muted">{html.escape(t("cta_desc"))}</p>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<p class="wolf-muted">{html.escape(t("urgency_line"))}</p>',
-        unsafe_allow_html=True,
+    render_note_card(
+        t("cta_title"),
+        f"{t('cta_desc')} {t('urgency_line')}",
     )
     left, right = st.columns(2)
     with left:
@@ -2864,7 +2856,6 @@ def render_cta_section(financials: dict[str, float | int | str]) -> None:
         if st.button(t("unlock_vip_guide"), use_container_width=True):
             st.session_state["clicked_cta"] = True
     render_vip_preview_cards()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_login_gate() -> None:
@@ -3720,7 +3711,6 @@ def main() -> None:
     paid_users = load_paid_users()
     is_paid = current_email in paid_users
     st.session_state["premium_unlocked"] = is_paid or check_subscription_status(current_email)
-    st.markdown('<div class="wolf-shell">', unsafe_allow_html=True)
     render_header()
     render_logged_in_status()
     render_email_return_banner(
@@ -3749,7 +3739,6 @@ def main() -> None:
 
     render_admin_panel(current_email)
     render_footer()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 main()
