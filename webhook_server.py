@@ -9,6 +9,7 @@ app = FastAPI()
 
 DATA_PATH = "emails.json"
 NOWPAYMENTS_IPN_SECRET = os.getenv("NOWPAYMENTS_IPN_SECRET", "")
+WEBHOOK_SYNC_SECRET = os.getenv("WEBHOOK_SYNC_SECRET", "")
 
 
 def ensure_file():
@@ -29,6 +30,23 @@ def add_paid_user(email):
         json.dump(data, f, indent=2)
 
 
+def normalize_email(email: str) -> str:
+    return str(email or "").strip().lower()
+
+
+def email_is_paid(email: str) -> bool:
+    normalized_email = normalize_email(email)
+    if not normalized_email:
+        return False
+
+    ensure_file()
+    with open(DATA_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    paid_users = {normalize_email(item) for item in data.get("paid_users", [])}
+    return normalized_email in paid_users
+
+
 def verify_ipn_signature(request_body: bytes, signature: str) -> bool:
     if not NOWPAYMENTS_IPN_SECRET or not signature:
         return False
@@ -39,6 +57,15 @@ def verify_ipn_signature(request_body: bytes, signature: str) -> bool:
         hashlib.sha512,
     ).hexdigest()
     return hmac.compare_digest(computed, signature)
+
+
+def verify_sync_secret(request: Request) -> None:
+    if not WEBHOOK_SYNC_SECRET:
+        return
+
+    provided_secret = str(request.headers.get("x-webhook-sync-secret", "") or "")
+    if not provided_secret or not hmac.compare_digest(provided_secret, WEBHOOK_SYNC_SECRET):
+        raise HTTPException(status_code=401, detail="Invalid sync secret")
 
 
 async def handle_nowpayments_ipn(request: Request, require_signature: bool = False):
@@ -68,3 +95,9 @@ async def webhook(request: Request):
 @app.post("/nowpayments/webhook")
 async def nowpayments_webhook(request: Request):
     return await handle_nowpayments_ipn(request, require_signature=True)
+
+
+@app.get("/vip-status")
+async def vip_status(email: str, request: Request):
+    verify_sync_secret(request)
+    return {"paid": email_is_paid(email)}

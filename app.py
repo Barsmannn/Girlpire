@@ -184,6 +184,8 @@ TRANSLATIONS = {
         "email_test_fallback_used": "No logged-in email found. Sending the test email to the fallback address instead.",
         "checkout_missing": "Add lemonsqueezy.checkout_url to secrets to enable the checkout button.",
         "payment_notice": "VIP is unlocked only after a real payment is synced into your paid user list or a verified LemonSqueezy subscription record is found.",
+        "vip_sync_notice": "Crypto payments unlock automatically after the confirmed webhook reaches Girlpire. If you just paid, refresh this page in a few seconds.",
+        "refresh_vip_access": "I Already Paid - Refresh VIP Access",
         "vip_title": "VIP Dashboard",
         "vip_desc": "This area is unlocked only for verified subscribers and uses your current calculator values as context.",
         "strategy_dashboard_title": "Your Creator Strategy Dashboard",
@@ -464,6 +466,8 @@ TRANSLATIONS = {
         "email_test_fallback_used": "Giris yapmis e-posta bulunamadi. Test e-postasi yerine yedek adrese gonderiliyor.",
         "checkout_missing": "Odeme butonunu etkinlestirmek icin secrets icine lemonsqueezy.checkout_url ekleyin.",
         "payment_notice": "VIP yalnizca gercek odeme paid user listenize senkronlandiginda veya dogrulanmis LemonSqueezy abonelik kaydi bulundugunda acilir.",
+        "vip_sync_notice": "Kripto odemeleri, onaylanmis webhook Girlpire'a ulastiginda otomatik acilir. Az once odeme yaptiysaniz, bu sayfayi birkac saniye sonra yenileyin.",
+        "refresh_vip_access": "Odeme Yaptim - VIP Erisimini Yenile",
         "vip_title": "VIP Paneli",
         "vip_desc": "Bu alan yalnizca dogrulanmis aboneler icin acilir ve mevcut hesaplayici degerlerinizi baglam olarak kullanir.",
         "strategy_dashboard_title": "Uretici Strateji Paneliniz",
@@ -1644,6 +1648,9 @@ def check_subscription_status(email: str) -> bool:
     if email.lower() in set(load_paid_users()):
         return True
 
+    if sync_paid_user_from_remote(email):
+        return True
+
     try:
         records = fetch_lemonsqueezy_subscriptions(email)
     except Exception:
@@ -1683,6 +1690,65 @@ def build_checkout_url(email: str) -> str:
 
 def get_nowpayments_api_key() -> str:
     return str(os.environ.get("NOWPAYMENTS_API_KEY", "") or "").strip()
+
+
+def get_webhook_base_url() -> str:
+    return str(
+        secret_get(
+            "app",
+            "webhook_base_url",
+            default=os.environ.get("WEBHOOK_BASE_URL", "https://girlpire-webhook.onrender.com"),
+        )
+        or "https://girlpire-webhook.onrender.com"
+    ).strip().rstrip("/")
+
+
+def get_webhook_sync_secret() -> str:
+    return str(
+        secret_get(
+            "app",
+            "webhook_sync_secret",
+            default=os.environ.get("WEBHOOK_SYNC_SECRET", ""),
+        )
+        or ""
+    ).strip()
+
+
+def fetch_remote_vip_status(email: str) -> bool | None:
+    normalized_email = str(email or "").strip().lower()
+    if not normalized_email:
+        return False
+
+    webhook_base_url = get_webhook_base_url()
+    if not webhook_base_url:
+        return None
+
+    headers = {}
+    sync_secret = get_webhook_sync_secret()
+    if sync_secret:
+        headers["x-webhook-sync-secret"] = sync_secret
+
+    try:
+        response = requests.get(
+            f"{webhook_base_url}/vip-status",
+            params={"email": normalized_email},
+            headers=headers,
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return None
+
+    return bool(data.get("paid"))
+
+
+def sync_paid_user_from_remote(email: str) -> bool:
+    remote_status = fetch_remote_vip_status(email)
+    if remote_status:
+        add_paid_user(email)
+        return True
+    return False
 
 
 def create_crypto_payment(email: str) -> str:
@@ -2367,6 +2433,10 @@ def render_paywall(email: str) -> None:
             st.error(t("crypto_payment_unavailable"))
         else:
             st.error("Crypto payment failed")
+    st.caption(t("vip_sync_notice"))
+    if st.button(t("refresh_vip_access"), use_container_width=True):
+        sync_paid_user_from_remote(email)
+        st.rerun()
     render_checkout_button(
         checkout_url,
         t("start_vip_membership"),
