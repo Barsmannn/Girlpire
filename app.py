@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 import html
+import io
 import json
 import math
 import os
@@ -168,6 +170,12 @@ TRANSLATIONS = {
         "all_users_title": "All Users",
         "new_users_title": "New Users (7 days)",
         "vip_users_title": "VIP Users",
+        "member_name": "Name",
+        "member_email": "Email",
+        "member_since": "Created At",
+        "name_missing": "-",
+        "download_all_users": "Download All Members CSV",
+        "download_vip_users": "Download VIP Members CSV",
         "no_users_saved": "No users saved yet.",
         "no_new_users": "No new users in the last 7 days.",
         "no_vip_users": "No VIP users yet.",
@@ -458,6 +466,12 @@ TRANSLATIONS = {
         "all_users_title": "Tum Kullanicilar",
         "new_users_title": "Yeni Kullanicilar (7 gun)",
         "vip_users_title": "VIP Kullanicilar",
+        "member_name": "Isim",
+        "member_email": "E-posta",
+        "member_since": "Kayit Tarihi",
+        "name_missing": "-",
+        "download_all_users": "Tum Uyeleri CSV Indir",
+        "download_vip_users": "VIP Uyeleri CSV Indir",
         "no_users_saved": "Henuz kayitli kullanici yok.",
         "no_new_users": "Son 7 gunde yeni kullanici yok.",
         "no_vip_users": "Henuz VIP kullanici yok.",
@@ -743,6 +757,10 @@ def get_current_user_email() -> str:
     return str(get_user_claim("email", "")).strip().lower()
 
 
+def get_current_user_name() -> str:
+    return " ".join(str(get_user_claim("name", "")).strip().split())
+
+
 def get_admin_email() -> str:
     return str(secret_get("admin_email", default="eyupozbey77@gmail.com") or "").strip().lower()
 
@@ -816,9 +834,11 @@ def normalize_user_records(items: object) -> list[dict[str, str]]:
     for item in items:
         if isinstance(item, dict):
             email = str(item.get("email", "")).strip().lower()
+            name = " ".join(str(item.get("name", "")).strip().split())
             created_at = str(item.get("created_at", default_created_at)).strip()
         else:
             email = str(item).strip().lower()
+            name = ""
             created_at = default_created_at
         if not email or email in seen:
             continue
@@ -828,6 +848,7 @@ def normalize_user_records(items: object) -> list[dict[str, str]]:
             created_at = default_created_at
         normalized_records.append(
             {
+                "name": name,
                 "email": email,
                 "created_at": created_at,
             }
@@ -881,23 +902,46 @@ def write_email_store(data: dict[str, object]) -> bool:
         return False
 
 
-def save_user_email(email: str) -> bool:
+def upsert_user_record(users: list[dict[str, str]], email: str, name: str = "") -> tuple[list[dict[str, str]], bool]:
+    normalized_email = str(email).strip().lower()
+    normalized_name = " ".join(str(name).strip().split())
+    if not normalized_email:
+        return users, False
+
+    updated_users = list(users)
+    for index, user_record in enumerate(updated_users):
+        record_email = str(user_record.get("email", "")).strip().lower()
+        if record_email != normalized_email:
+            continue
+        current_name = " ".join(str(user_record.get("name", "")).strip().split())
+        if normalized_name and normalized_name != current_name:
+            updated_record = dict(user_record)
+            updated_record["name"] = normalized_name
+            updated_users[index] = updated_record
+            return updated_users, True
+        return updated_users, False
+
+    updated_users.append(
+        {
+            "name": normalized_name,
+            "email": normalized_email,
+            "created_at": today_iso_date(),
+        }
+    )
+    return updated_users, True
+
+
+def save_user_email(email: str, name: str = "") -> bool:
     normalized_email = str(email).strip().lower()
     if not normalized_email:
         return False
 
     email_store = ensure_email_store()
     users = list(email_store.get("users", []))
-    existing_emails = {str(item.get("email", "")).strip().lower() for item in users}
-    if normalized_email in existing_emails:
+    users, changed = upsert_user_record(users, normalized_email, name)
+    if not changed:
         return False
 
-    users.append(
-        {
-            "email": normalized_email,
-            "created_at": today_iso_date(),
-        }
-    )
     return write_email_store(
         {
             "users": users,
@@ -911,7 +955,7 @@ def load_paid_users() -> list[str]:
     return list(email_store.get("paid_users", []))
 
 
-def add_paid_user(email: str) -> bool:
+def add_paid_user(email: str, name: str = "") -> bool:
     normalized_email = str(email).strip().lower()
     if not normalized_email:
         return False
@@ -923,15 +967,51 @@ def add_paid_user(email: str) -> bool:
 
     paid_users.append(normalized_email)
     users = list(email_store.get("users", []))
-    existing_emails = {str(item.get("email", "")).strip().lower() for item in users}
-    if normalized_email not in existing_emails:
-        users.append(
+    users, _ = upsert_user_record(users, normalized_email, name)
+    return write_email_store({"users": users, "paid_users": paid_users})
+
+
+def build_admin_member_rows(user_records: list[dict[str, str]]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for user_record in user_records:
+        rows.append(
             {
-                "email": normalized_email,
-                "created_at": today_iso_date(),
+                t("member_name"): str(user_record.get("name", "")).strip() or t("name_missing"),
+                t("member_email"): str(user_record.get("email", "")).strip().lower(),
+                t("member_since"): str(user_record.get("created_at", "")).strip(),
             }
         )
-    return write_email_store({"users": users, "paid_users": paid_users})
+    return rows
+
+
+def build_vip_member_records(
+    user_records: list[dict[str, str]], paid_users: list[str]
+) -> list[dict[str, str]]:
+    user_map = {
+        str(user_record.get("email", "")).strip().lower(): user_record
+        for user_record in user_records
+    }
+    vip_records: list[dict[str, str]] = []
+    for paid_email in paid_users:
+        normalized_email = str(paid_email).strip().lower()
+        user_record = dict(user_map.get(normalized_email, {}))
+        if not user_record:
+            user_record = {
+                "name": "",
+                "email": normalized_email,
+                "created_at": "",
+            }
+        vip_records.append(user_record)
+    return vip_records
+
+
+def build_members_csv(user_records: list[dict[str, str]]) -> str:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([t("member_name"), t("member_email"), t("member_since")])
+    for row in build_admin_member_rows(user_records):
+        writer.writerow([row[t("member_name")], row[t("member_email")], row[t("member_since")]])
+    return output.getvalue()
 
 
 def get_app_url() -> str:
@@ -3217,6 +3297,7 @@ def render_admin_panel(user_email: str) -> None:
     email_store = ensure_email_store()
     users = list(email_store.get("users", []))
     paid_users = list(email_store.get("paid_users", []))
+    vip_records = build_vip_member_records(users, paid_users)
     today_date = datetime.now().date()
     new_users: list[dict[str, str]] = []
     for user_record in users:
@@ -3238,28 +3319,39 @@ def render_admin_panel(user_email: str) -> None:
     with stat_columns[1]:
         st.metric(t("vip_users_metric"), len(paid_users))
 
+    download_columns = st.columns(2)
+    with download_columns[0]:
+        st.download_button(
+            t("download_all_users"),
+            data=build_members_csv(users),
+            file_name="girlpire_all_members.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with download_columns[1]:
+        st.download_button(
+            t("download_vip_users"),
+            data=build_members_csv(vip_records),
+            file_name="girlpire_vip_members.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
     st.subheader(t("all_users_title"))
     if users:
-        for user_record in users:
-            email = str(user_record.get("email", "")).strip().lower()
-            created_at = str(user_record.get("created_at", "")).strip()
-            st.write(f"{email} - {created_at}")
+        st.dataframe(build_admin_member_rows(users), use_container_width=True, hide_index=True)
     else:
         st.caption(t("no_users_saved"))
 
     st.subheader(t("new_users_title"))
     if new_users:
-        for user_record in new_users:
-            email = str(user_record.get("email", "")).strip().lower()
-            created_at = str(user_record.get("created_at", "")).strip()
-            st.write(f"{email} - {created_at}")
+        st.dataframe(build_admin_member_rows(new_users), use_container_width=True, hide_index=True)
     else:
         st.caption(t("no_new_users"))
 
     st.subheader(t("vip_users_title"))
-    if paid_users:
-        for paid_email in paid_users:
-            st.write(str(paid_email).strip().lower())
+    if vip_records:
+        st.dataframe(build_admin_member_rows(vip_records), use_container_width=True, hide_index=True)
     else:
         st.caption(t("no_vip_users"))
 
@@ -3278,7 +3370,7 @@ def render_admin_panel(user_email: str) -> None:
             st.error(f"Hata: {e}")
 
     if st.button(t("add_myself_vip"), use_container_width=True):
-        if add_paid_user(user_email):
+        if add_paid_user(user_email, get_current_user_name()):
             st.session_state["premium_unlocked"] = True
             st.success(t("vip_add_success"))
             st.rerun()
@@ -3314,7 +3406,8 @@ def main() -> None:
         st.stop()
 
     current_email = get_current_user_email()
-    save_user_email(current_email)
+    current_name = get_current_user_name()
+    save_user_email(current_email, current_name)
     paid_users = load_paid_users()
     is_paid = current_email in paid_users
     st.session_state["premium_unlocked"] = is_paid or check_subscription_status(current_email)
