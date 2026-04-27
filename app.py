@@ -1129,30 +1129,90 @@ def render_styles() -> None:
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
         :root {
-            --wolf-bg: #050505;
-            --wolf-surface: #0f0f0f;
-            --wolf-surface-soft: #171717;
-            --wolf-gold: #d4af37;
-            --wolf-gold-soft: rgba(212, 175, 55, 0.14);
-            --wolf-text: #f5f5f5;
-            --wolf-muted: #b1b1b1;
-            --wolf-border: rgba(212, 175, 55, 0.36);
+            --wolf-bg: #0b0f19;
+            --wolf-surface: rgba(17, 23, 38, 0.88);
+            --wolf-surface-soft: rgba(24, 32, 54, 0.88);
+            --wolf-primary: #9f7aea;
+            --wolf-primary-strong: #c084fc;
+            --wolf-accent: #f472b6;
+            --wolf-text: #e6eaf2;
+            --wolf-muted: #a3afc3;
+            --wolf-border: rgba(159, 122, 234, 0.26);
+            --wolf-border-strong: rgba(244, 114, 182, 0.30);
+            --wolf-shadow: 0 26px 90px rgba(3, 6, 15, 0.45);
+        }
+
+        html, body, [class*="css"] {
+            font-family: "Manrope", "DM Sans", "Segoe UI", sans-serif;
         }
 
         .stApp {
             background:
-                radial-gradient(circle at top, rgba(212, 175, 55, 0.10), transparent 35%),
-                linear-gradient(180deg, #040404 0%, #090909 100%);
+                radial-gradient(circle at top left, rgba(159, 122, 234, 0.24), transparent 34%),
+                radial-gradient(circle at top right, rgba(244, 114, 182, 0.14), transparent 28%),
+                linear-gradient(180deg, #0b0f19 0%, #0e1320 48%, #0a0f1a 100%);
             color: var(--wolf-text);
+            position: relative;
+        }
+
+        .stApp::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 12% 12%, rgba(159, 122, 234, 0.11), transparent 24%),
+                radial-gradient(circle at 88% 18%, rgba(244, 114, 182, 0.10), transparent 18%),
+                radial-gradient(circle at 50% 100%, rgba(95, 70, 170, 0.12), transparent 30%);
+            z-index: 0;
         }
 
         [data-testid="stHeader"] {
-            background: rgba(5, 5, 5, 0.85);
+            background: rgba(11, 15, 25, 0.72);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(159, 122, 234, 0.14);
         }
 
         [data-testid="stSidebar"] {
-            background: #090909;
+            background: rgba(10, 14, 24, 0.96);
+            border-right: 1px solid rgba(159, 122, 234, 0.12);
+        }
+
+        [data-testid="stAppViewContainer"] {
+            background: transparent;
+        }
+
+        .main .block-container {
+            max-width: 1180px;
+            padding-top: 1rem;
+            padding-bottom: 3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--wolf-text);
+            letter-spacing: -0.03em;
+            font-weight: 800;
+        }
+
+        p, label, .stCaption, .stMarkdown, .st-emotion-cache-10trblm {
+            color: var(--wolf-text);
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(159, 122, 234, 0.40),
+                transparent
+            );
+            margin: 1.4rem 0;
         }
 
         .stButton > button,
@@ -1160,61 +1220,108 @@ def render_styles() -> None:
         .stLinkButton > a {
             width: 100%;
             min-height: 3.2rem;
-            border-radius: 999px;
-            border: 1px solid var(--wolf-gold);
-            background: linear-gradient(135deg, #e2c35a 0%, #9e7b1a 100%);
-            color: #111111 !important;
+            border-radius: 18px;
+            border: 1px solid rgba(221, 203, 255, 0.36);
+            background: linear-gradient(135deg, #9f7aea 0%, #b794f4 52%, #f472b6 100%);
+            color: #0b0f19 !important;
             font-weight: 800;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.20);
+            box-shadow: 0 18px 44px rgba(159, 122, 234, 0.28);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+            text-decoration: none !important;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        .stLinkButton > a:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 24px 52px rgba(159, 122, 234, 0.34);
+            border-color: rgba(255, 225, 248, 0.52);
+        }
+
+        .stButton > button:focus,
+        .stDownloadButton > button:focus,
+        .stLinkButton > a:focus {
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.04),
+                0 0 0 4px rgba(159, 122, 234, 0.20),
+                0 18px 44px rgba(159, 122, 234, 0.28);
         }
 
         div[data-baseweb="select"] > div,
         div[data-baseweb="input"] > div {
-            background: rgba(255, 255, 255, 0.02);
+            min-height: 3.15rem;
+            border-radius: 18px;
+            background: rgba(10, 14, 24, 0.92);
+            border: 1px solid rgba(159, 122, 234, 0.22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        div[data-baseweb="select"] input,
+        div[data-baseweb="input"] input {
+            color: var(--wolf-text) !important;
+        }
+
+        [data-testid="stForm"],
+        .wolf-hero,
+        .wolf-card,
+        .wolf-metric,
+        .wolf-userbox,
+        .wolf-email-banner {
+            border-radius: 28px;
             border: 1px solid var(--wolf-border);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(16, 22, 38, 0.94)),
+                linear-gradient(135deg, rgba(159, 122, 234, 0.10), rgba(244, 114, 182, 0.04));
+            backdrop-filter: blur(18px);
+            box-shadow: var(--wolf-shadow);
+            animation: wolfFadeUp 0.45s ease both;
         }
 
         .wolf-shell {
             padding-bottom: 2rem;
         }
 
-        .wolf-hero,
-        .wolf-card,
-        .wolf-metric,
-        .wolf-userbox {
-            border-radius: 24px;
-            border: 1px solid var(--wolf-border);
-            background: linear-gradient(180deg, rgba(212, 175, 55, 0.06), rgba(255, 255, 255, 0.02));
-            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
-            animation: wolfFadeUp 0.45s ease both;
+        [data-testid="stForm"] {
+            padding: 1.05rem 1rem 0.3rem;
+            margin: 0.9rem 0 1.2rem;
         }
 
         .wolf-hero {
-            padding: 1.4rem 1.25rem;
+            position: relative;
+            overflow: hidden;
+            padding: clamp(1.35rem, 4vw, 2.4rem);
+        }
+
+        .wolf-hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -8% -28% auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(244, 114, 182, 0.24), transparent 68%);
+            pointer-events: none;
+            filter: blur(10px);
         }
 
         .wolf-card,
         .wolf-userbox {
-            padding: 1rem;
+            padding: 1.1rem;
             margin-bottom: 1rem;
         }
 
         .wolf-email-banner {
             position: relative;
             overflow: hidden;
-            border-radius: 24px;
-            border: 1px solid var(--wolf-border);
             background:
-                radial-gradient(circle at top right, rgba(212, 175, 55, 0.18), transparent 36%),
-                linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(255, 255, 255, 0.02));
-            padding: 1.2rem;
+                radial-gradient(circle at top right, rgba(244, 114, 182, 0.20), transparent 34%),
+                linear-gradient(180deg, rgba(159, 122, 234, 0.13), rgba(16, 22, 38, 0.95));
+            padding: 1.2rem 1.2rem 1.1rem;
             margin: 0.35rem 0 1rem;
-            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
-            animation: wolfFadeUp 0.45s ease both;
         }
 
         .wolf-email-highlight {
-            color: var(--wolf-gold);
+            color: #f6c8e4;
             font-weight: 700;
             margin-top: 0.65rem;
         }
@@ -1225,59 +1332,94 @@ def render_styles() -> None:
             justify-content: center;
             width: 100%;
             min-height: 3.2rem;
-            border-radius: 999px;
-            border: 1px solid var(--wolf-gold);
-            background: linear-gradient(135deg, #e2c35a 0%, #9e7b1a 100%);
-            color: #111111 !important;
+            border-radius: 18px;
+            border: 1px solid rgba(221, 203, 255, 0.36);
+            background: linear-gradient(135deg, #9f7aea 0%, #b794f4 52%, #f472b6 100%);
+            color: #0b0f19 !important;
             font-weight: 800;
             text-decoration: none !important;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.20);
+            box-shadow: 0 18px 44px rgba(159, 122, 234, 0.28);
             margin: 0.2rem 0 0.5rem;
         }
 
         .wolf-metric {
-            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+            padding: 1.15rem;
             margin-bottom: 1rem;
-            min-height: 150px;
+            min-height: 164px;
+        }
+
+        .wolf-metric::after {
+            content: "";
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(159, 122, 234, 0.75), rgba(244, 114, 182, 0.06));
         }
 
         .wolf-brand {
             display: inline-flex;
             align-items: center;
-            padding: 0.42rem 0.8rem;
+            padding: 0.48rem 0.82rem;
             border-radius: 999px;
             border: 1px solid var(--wolf-border);
-            background: var(--wolf-gold-soft);
-            color: var(--wolf-gold);
+            background: rgba(159, 122, 234, 0.12);
+            color: #d7c8ff;
             font-size: 0.8rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             font-weight: 700;
         }
 
+        .wolf-panel-label {
+            margin-bottom: 0.45rem;
+            color: var(--wolf-muted);
+            font-size: 0.76rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
         .wolf-title {
-            margin: 0.95rem 0 0.35rem;
-            font-size: clamp(2rem, 6vw, 3.4rem);
-            line-height: 1.05;
+            margin: 0.95rem 0 0.5rem;
+            font-size: clamp(2.2rem, 6vw, 4rem);
+            line-height: 0.98;
             color: var(--wolf-text);
+            max-width: 12ch;
         }
 
         .wolf-subtitle,
         .wolf-muted {
             color: var(--wolf-muted);
-            line-height: 1.65;
+            line-height: 1.7;
+        }
+
+        .wolf-subtitle {
+            max-width: 54ch;
+            font-size: clamp(0.98rem, 2.4vw, 1.08rem);
+        }
+
+        .wolf-card h3,
+        .wolf-inline-title {
+            margin: 0 0 0.55rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--wolf-text);
         }
 
         .wolf-metric-label {
             font-size: 0.84rem;
             color: var(--wolf-muted);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.7rem;
+            letter-spacing: 0.09em;
+            margin-bottom: 0.8rem;
+            font-weight: 700;
         }
 
         .wolf-metric-value {
-            font-size: clamp(1.65rem, 5vw, 2.35rem);
+            font-size: clamp(1.7rem, 5vw, 2.55rem);
             color: var(--wolf-text);
             font-weight: 800;
             line-height: 1.1;
@@ -1285,37 +1427,81 @@ def render_styles() -> None:
 
         .wolf-metric-note {
             margin-top: 0.75rem;
-            color: var(--wolf-gold);
+            color: #d8c9ff;
             font-size: 0.88rem;
         }
 
         .wolf-list {
             margin: 0;
-            padding-left: 1.15rem;
-            line-height: 1.7;
+            padding-left: 1.05rem;
+            line-height: 1.8;
             color: var(--wolf-text);
         }
 
         .wolf-list li + li {
-            margin-top: 0.5rem;
+            margin-top: 0.42rem;
+        }
+
+        .wolf-user-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .wolf-avatar,
+        .wolf-avatar-img {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            flex-shrink: 0;
         }
 
         .wolf-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
             border: 1px solid var(--wolf-border);
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(255, 255, 255, 0.04));
+            background: linear-gradient(135deg, rgba(159, 122, 234, 0.24), rgba(244, 114, 182, 0.18));
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--wolf-gold);
+            color: var(--wolf-text);
             font-size: 1rem;
             font-weight: 800;
         }
 
+        .wolf-avatar-img {
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+        }
+
+        .wolf-user-name {
+            color: var(--wolf-text);
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .wolf-user-email {
+            color: var(--wolf-muted);
+            font-size: 0.92rem;
+            margin-top: 0.25rem;
+            word-break: break-word;
+        }
+
+        .wolf-login-hero {
+            margin-top: clamp(1.6rem, 5vw, 3.8rem);
+        }
+
+        .wolf-login-copy {
+            max-width: 44rem;
+        }
+
+        .wolf-login-actions {
+            margin-top: 1rem;
+        }
+
         .wolf-footer {
-            padding: 0.8rem 0 1.5rem;
+            padding: 1rem 0 1.5rem;
             text-align: center;
             color: var(--wolf-muted);
             font-size: 0.88rem;
@@ -1323,30 +1509,79 @@ def render_styles() -> None:
 
         .wolf-preview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 0.9rem;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 0.95rem;
             margin-top: 1rem;
         }
 
         .wolf-preview-card {
-            border-radius: 20px;
+            border-radius: 24px;
             border: 1px solid var(--wolf-border);
-            padding: 1rem;
-            background: linear-gradient(180deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02));
-            min-height: 150px;
+            padding: 1.05rem;
+            background: linear-gradient(180deg, rgba(159, 122, 234, 0.08), rgba(255, 255, 255, 0.02));
+            box-shadow: 0 18px 42px rgba(6, 9, 19, 0.28);
+            min-height: 156px;
             animation: wolfFadeUp 0.5s ease both;
         }
 
         .wolf-preview-lock {
-            color: var(--wolf-gold);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            background: rgba(159, 122, 234, 0.16);
+            color: #f3d1eb;
             font-size: 1rem;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.75rem;
         }
 
         .wolf-preview-title {
             color: var(--wolf-text);
             font-weight: 700;
             margin-bottom: 0.55rem;
+        }
+
+        [data-testid="stAlert"] {
+            border-radius: 20px;
+            border: 1px solid rgba(159, 122, 234, 0.20);
+            background: rgba(14, 20, 34, 0.90);
+            box-shadow: 0 16px 38px rgba(3, 6, 15, 0.22);
+        }
+
+        [data-testid="stAlert"] p {
+            color: var(--wolf-text);
+        }
+
+        [data-testid="stExpander"] {
+            border-radius: 22px;
+            border: 1px solid var(--wolf-border);
+            background: rgba(15, 21, 36, 0.84);
+            overflow: hidden;
+        }
+
+        [data-testid="stExpander"] details summary {
+            padding: 0.25rem 0.3rem;
+        }
+
+        [data-testid="stDataFrame"] {
+            border-radius: 22px;
+            border: 1px solid var(--wolf-border);
+            overflow: hidden;
+            box-shadow: 0 16px 38px rgba(3, 6, 15, 0.22);
+        }
+
+        [data-testid="stMetric"] {
+            border-radius: 24px;
+            border: 1px solid var(--wolf-border);
+            background: rgba(15, 21, 36, 0.88);
+            padding: 0.85rem 1rem;
+        }
+
+        [data-testid="stMetric"] label,
+        [data-testid="stMetric"] [data-testid="stMetricLabel"] {
+            color: var(--wolf-muted) !important;
         }
 
         @keyframes wolfFadeUp {
@@ -1359,6 +1594,42 @@ def render_styles() -> None:
                 transform: translateY(0);
             }
         }
+
+        @media (max-width: 900px) {
+            .main .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-top: 0.75rem;
+            }
+
+            .wolf-hero,
+            .wolf-card,
+            .wolf-userbox,
+            .wolf-metric,
+            .wolf-email-banner,
+            [data-testid="stForm"] {
+                border-radius: 22px;
+            }
+
+            .wolf-title {
+                max-width: none;
+                font-size: clamp(2rem, 9vw, 2.8rem);
+            }
+
+            .wolf-preview-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .wolf-user-meta {
+                align-items: flex-start;
+            }
+
+            .stButton > button,
+            .stDownloadButton > button,
+            .stLinkButton > a {
+                min-height: 3.1rem;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1366,7 +1637,7 @@ def render_styles() -> None:
 
 
 def render_header() -> None:
-    left, right = st.columns([3, 1.4])
+    left, right = st.columns([2.1, 1.0], gap="large")
     with left:
         st.markdown(
             f"""
@@ -1379,11 +1650,16 @@ def render_header() -> None:
             unsafe_allow_html=True,
         )
     with right:
+        st.markdown(
+            f'<div class="wolf-panel-label">{html.escape(t("language"))}</div>',
+            unsafe_allow_html=True,
+        )
         st.selectbox(
             t("language"),
             options=list(LANGUAGE_OPTIONS.keys()),
             format_func=lambda code: LANGUAGE_OPTIONS[code],
             key="language",
+            label_visibility="collapsed",
         )
         if is_logged_in():
             render_user_menu()
@@ -1395,18 +1671,27 @@ def render_user_menu() -> None:
     picture = get_user_claim("picture", "")
     initials = "".join(part[:1] for part in name.split()[:2]).upper() or "GP"
 
-    st.markdown('<div class="wolf-userbox">', unsafe_allow_html=True)
-    if picture:
-        st.image(picture, width=60)
-    else:
-        st.markdown(
-            f'<div class="wolf-avatar">{html.escape(initials)}</div>',
-            unsafe_allow_html=True,
-        )
-    st.markdown(f"**{html.escape(name)}**")
-    st.caption(f"{t('logged_in_as')}: {email}")
+    avatar_html = (
+        f'<img class="wolf-avatar-img" src="{html.escape(picture, quote=True)}" alt="{html.escape(name)}" />'
+        if picture
+        else f'<div class="wolf-avatar">{html.escape(initials)}</div>'
+    )
+    st.markdown(
+        f"""
+        <div class="wolf-userbox">
+            <div class="wolf-panel-label">{html.escape(t("logged_in_as"))}</div>
+            <div class="wolf-user-meta">
+                {avatar_html}
+                <div>
+                    <div class="wolf-user-name">{html.escape(name)}</div>
+                    <div class="wolf-user-email">{html.escape(email)}</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.button(t("logout"), use_container_width=True, on_click=st.logout)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # To enable Google login:
@@ -1416,20 +1701,45 @@ def render_user_menu() -> None:
 #    http://localhost:8501/oauth2callback
 # 4. Paste client_id and client_secret into secrets.toml
 def render_google_login_screen() -> None:
-    st.title("Girlpire")
-    st.subheader("Exclusive Guide for Creators")
-    st.button("Continue with Google", on_click=lambda: st.login("google"))
+    preview_items = [
+        (t("vip_feature_strategy"), t("preview_benefit_strategy")),
+        (t("vip_feature_plan"), t("preview_benefit_plan")),
+        (t("vip_feature_pricing"), t("preview_benefit_pricing")),
+    ]
+    preview_cards = "".join(
+        f"""
+        <div class="wolf-preview-card">
+            <div class="wolf-preview-lock">&#10022;</div>
+            <div class="wolf-preview-title">{html.escape(title)}</div>
+            <div class="wolf-muted">{html.escape(body)}</div>
+        </div>
+        """
+        for title, body in preview_items
+    )
+    st.markdown(
+        f"""
+        <section class="wolf-hero wolf-login-hero">
+            <div class="wolf-brand">{html.escape(t("brand"))}</div>
+            <div class="wolf-login-copy">
+                <h1 class="wolf-title">{html.escape(t("hero_title"))}</h1>
+                <p class="wolf-subtitle">{html.escape(t("hero_subtitle"))}</p>
+                <p class="wolf-muted">{html.escape(t("login_gate_desc"))}</p>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="wolf-login-actions">', unsafe_allow_html=True)
+    st.button(t("continue_google"), on_click=lambda: st.login("google"), use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="wolf-preview-grid">{preview_cards}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_logged_in_status() -> None:
-    user = getattr(st, "user", None)
-    user_name = get_user_claim("name", "Creator")
-    user_email = getattr(user, "email", None) if user is not None else None
-    if user is not None:
-        user_name = str(getattr(user, "name", user_name) or user_name)
-    st.success(f"Welcome {user_name}")
-    st.write(user_email)
-    st.button("Logout", on_click=st.logout, key="top_logout")
+    return
 
 
 def render_metric_card(title: str, value: str, note: str = "") -> None:
@@ -1452,7 +1762,7 @@ def render_note_card(title: str, body: str) -> None:
     st.markdown(
         f"""
         <div class="wolf-card">
-            <h3>{html.escape(title)}</h3>
+            <div class="wolf-inline-title">{html.escape(title)}</div>
             <p class="wolf-muted">{html.escape(body)}</p>
         </div>
         """,
@@ -1465,7 +1775,7 @@ def render_list_card(title: str, lines: list[str]) -> None:
     st.markdown(
         f"""
         <div class="wolf-card">
-            <h3>{html.escape(title)}</h3>
+            <div class="wolf-inline-title">{html.escape(title)}</div>
             <ul class="wolf-list">{items}</ul>
         </div>
         """,
@@ -2486,7 +2796,7 @@ def render_free_calculator() -> dict[str, float | int | str] | None:
     metric_columns = st.columns(2)
     for index, (label, value) in enumerate(metrics):
         with metric_columns[index % 2]:
-            render_metric_card(label, value, t("brand"))
+            render_metric_card(label, value)
 
     st.divider()
     engine_columns = st.columns(2)
@@ -2611,7 +2921,7 @@ def render_paywall(email: str) -> None:
     if not st.session_state.get("premium_unlocked", False):
         st.warning(t("vip_upgrade_message"))
     if checkout_url:
-        st.markdown(f"[{t('pay_with_card')}]({checkout_url})")
+        st.link_button(t("pay_with_card"), checkout_url, use_container_width=True)
     if st.button(t("pay_with_crypto"), use_container_width=True):
         payment_url = create_crypto_payment(email)
         if payment_url:
@@ -3389,7 +3699,6 @@ def main() -> None:
     init_state()
     detect_email_traffic()
     render_styles()
-    st.info("Girlpire is running")
     if not google_login_ready():
         st.warning(
             "Google login not configured. Paste your Client ID and Secret into .streamlit/secrets.toml"
