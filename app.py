@@ -1695,17 +1695,7 @@ def build_checkout_url(email: str) -> str:
 
 
 def get_nowpayments_api_key() -> str:
-    try:
-        return str(st.secrets["NOWPAYMENTS_API_KEY"] or "").strip()
-    except Exception:
-        return str(
-            secret_get(
-                "nowpayments",
-                "api_key",
-                default=os.environ.get("NOWPAYMENTS_API_KEY", ""),
-            )
-            or ""
-        ).strip()
+    return str(os.environ.get("NOWPAYMENTS_API_KEY", "") or "").strip()
 
 
 def build_vip_email_return_url(email: str) -> str:
