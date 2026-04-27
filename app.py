@@ -116,6 +116,8 @@ TRANSLATIONS = {
         "login_gate_title": "Continue to Unlock Your Strategy",
         "login_gate_desc": "Log in with Google to continue to the VIP decision step and sync access with your future membership.",
         "continue_google": "Continue with Google",
+        "login_preview_label": "VIP Preview",
+        "login_preview_body": "Premium growth planning for creators and agencies that want clearer pricing, better retention and a more scalable revenue system.",
         "google_setup_missing": "Google login is not configured yet.",
         "google_setup_hint": "Add Google OIDC values to .streamlit/secrets.toml to enable native Streamlit login.",
         "paywall_title": "Unlock Girlpire VIP & Monthly Updates",
@@ -412,6 +414,8 @@ TRANSLATIONS = {
         "login_gate_title": "Stratejinizi Acmak Icin Devam Edin",
         "login_gate_desc": "VIP karar adimina devam etmek ve gelecekteki uyeligi ayni hesapla eslemek icin Google ile giris yapin.",
         "continue_google": "Google ile Devam Et",
+        "login_preview_label": "VIP On Izleme",
+        "login_preview_body": "Daha net fiyatlama, daha guclu retention ve daha olceklenebilir gelir sistemi isteyen ureticiler ve ajanslar icin premium buyume plani.",
         "google_setup_missing": "Google girisi henuz yapilandirilmamis.",
         "google_setup_hint": "Yerel Streamlit girisini etkinlestirmek icin .streamlit/secrets.toml dosyasina Google OIDC degerlerini ekleyin.",
         "paywall_title": "Girlpire VIP ve Aylik Guncellemeleri Ac",
@@ -1450,8 +1454,28 @@ def render_styles() -> None:
             max-width: 44rem;
         }
 
-        .wolf-login-actions {
+        .wolf-login-grid {
             margin-top: 1rem;
+        }
+
+        .wolf-login-side-label {
+            margin: 0.2rem 0 0.8rem;
+            color: #d7c8ff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .wolf-login-side-copy {
+            margin: 0 0 1rem;
+            color: var(--wolf-muted);
+            line-height: 1.7;
+        }
+
+        .wolf-login-cta-wrap {
+            margin-top: 1rem;
+            max-width: 26rem;
         }
 
         .wolf-footer {
@@ -1660,34 +1684,42 @@ def render_google_login_screen() -> None:
         (t("vip_feature_plan"), t("preview_benefit_plan")),
         (t("vip_feature_pricing"), t("preview_benefit_pricing")),
     ]
-    preview_cards = "".join(
-        f"""
-        <div class="wolf-preview-card">
-            <div class="wolf-preview-lock">&#10022;</div>
-            <div class="wolf-preview-title">{html.escape(title)}</div>
-            <div class="wolf-muted">{html.escape(body)}</div>
-        </div>
-        """
-        for title, body in preview_items
-    )
-    st.markdown(
-        f"""
-        <section class="wolf-hero wolf-login-hero">
-            <div class="wolf-brand">{html.escape(t("brand"))}</div>
-            <div class="wolf-login-copy">
-                <h1 class="wolf-title">{html.escape(t("hero_title"))}</h1>
-                <p class="wolf-subtitle">{html.escape(t("hero_subtitle"))}</p>
-                <p class="wolf-muted">{html.escape(t("login_gate_desc"))}</p>
+    left, right = st.columns([1.35, 1], gap="large")
+    with left:
+        st.markdown(
+            f"""
+            <section class="wolf-hero wolf-login-hero">
+                <div class="wolf-brand">{html.escape(t("brand"))}</div>
+                <div class="wolf-login-copy">
+                    <h1 class="wolf-title">{html.escape(t("hero_title"))}</h1>
+                    <p class="wolf-subtitle">{html.escape(t("hero_subtitle"))}</p>
+                    <p class="wolf-muted">{html.escape(t("login_gate_desc"))}</p>
+                </div>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="wolf-login-cta-wrap">', unsafe_allow_html=True)
+        st.button(
+            t("continue_google"),
+            on_click=lambda: st.login("google"),
+            use_container_width=True,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+    with right:
+        st.markdown(
+            f"""
+            <div class="wolf-login-grid">
+                <div class="wolf-login-side-label">{html.escape(t("login_preview_label"))}</div>
+                <p class="wolf-login-side-copy">
+                    {html.escape(t("login_preview_body"))}
+                </p>
             </div>
-        </section>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.button(t("continue_google"), on_click=lambda: st.login("google"), use_container_width=True)
-    st.markdown(
-        f'<div class="wolf-preview-grid">{preview_cards}</div>',
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
+        for title, body in preview_items:
+            render_note_card(title, body)
 
 
 def render_logged_in_status() -> None:
