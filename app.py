@@ -1624,40 +1624,56 @@ def subscription_record_is_valid(record: dict) -> bool:
     return False
 
 
-@st.cache_data(ttl=300, show_spinner=False)
-def fetch_lemonsqueezy_subscriptions(email: str) -> list[dict]:
+def _fetch_lemonsqueezy_subscriptions(email: str) -> list[dict]:
     api_key = str(secret_get("lemonsqueezy", "api_key", default="") or "").strip()
     if not api_key or not email:
         return []
 
-    params = {"filter[user_email]": email, "page[size]": 20}
+    base_params = {"filter[user_email]": email, "page[size]": 20}
     store_id = str(secret_get("lemonsqueezy", "store_id", default="") or "").strip()
     variant_id = str(secret_get("lemonsqueezy", "variant_id", default="") or "").strip()
-    if store_id:
-        params["filter[store_id]"] = store_id
-    if variant_id:
-        params["filter[variant_id]"] = variant_id
 
     headers = {
         "Accept": "application/vnd.api+json",
         "Content-Type": "application/vnd.api+json",
         "Authorization": f"Bearer {api_key}",
     }
-    try:
-        response = requests.get(
-            "https://api.lemonsqueezy.com/v1/subscriptions",
-            params=params,
-            headers=headers,
-            timeout=8,
-        )
-        response.raise_for_status()
-        payload = response.json()
-    except (requests.RequestException, ValueError):
-        return []
-    return payload.get("data", []) or []
+
+    def request_with_params(params: dict[str, str]) -> list[dict]:
+        try:
+            response = requests.get(
+                "https://api.lemonsqueezy.com/v1/subscriptions",
+                params=params,
+                headers=headers,
+                timeout=8,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (requests.RequestException, ValueError):
+            return []
+        return payload.get("data", []) or []
+
+    filtered_params = dict(base_params)
+    if store_id:
+        filtered_params["filter[store_id]"] = store_id
+    if variant_id:
+        filtered_params["filter[variant_id]"] = variant_id
+
+    records = request_with_params(filtered_params)
+    if records:
+        return records
+
+    if filtered_params != base_params:
+        return request_with_params(base_params)
+    return []
 
 
-def check_subscription_status(email: str) -> bool:
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_lemonsqueezy_subscriptions(email: str) -> list[dict]:
+    return _fetch_lemonsqueezy_subscriptions(email)
+
+
+def check_subscription_status(email: str, *, force_refresh: bool = False) -> bool:
     if not email:
         return False
 
@@ -1668,10 +1684,17 @@ def check_subscription_status(email: str) -> bool:
         return True
 
     try:
-        records = fetch_lemonsqueezy_subscriptions(email)
+        if force_refresh:
+            fetch_lemonsqueezy_subscriptions.clear()
+            records = _fetch_lemonsqueezy_subscriptions(email)
+        else:
+            records = fetch_lemonsqueezy_subscriptions(email)
     except Exception:
         return False
-    return any(subscription_record_is_valid(record) for record in records)
+    is_active = any(subscription_record_is_valid(record) for record in records)
+    if is_active:
+        add_paid_user(email)
+    return is_active
 
 
 def build_checkout_url(email: str) -> str:
@@ -2495,7 +2518,9 @@ def render_paywall(email: str) -> None:
             st.markdown(f"**{t('crypto_direct_link')}:** {saved_crypto_url}")
     st.caption(t("vip_sync_notice"))
     if st.button(t("refresh_vip_access"), use_container_width=True):
-        refreshed = sync_paid_user_from_remote(email) or check_subscription_status(email)
+        refreshed = sync_paid_user_from_remote(email) or check_subscription_status(
+            email, force_refresh=True
+        )
         if refreshed:
             st.session_state["premium_unlocked"] = True
             st.success(t("vip_refresh_success"))
