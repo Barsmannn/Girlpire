@@ -1,10 +1,16 @@
-import json, os
-import urllib.request
-from fastapi import FastAPI, Request
+import hashlib
+import hmac
+import json
+import os
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request
 
 app = FastAPI()
 
 DATA_PATH = "emails.json"
+load_dotenv()
+NOWPAYMENTS_IPN_SECRET = os.getenv("NOWPAYMENTS_IPN_SECRET", "")
 
 
 def ensure_file():
@@ -25,25 +31,42 @@ def add_paid_user(email):
         json.dump(data, f, indent=2)
 
 
-@app.post("/lemons/webhook")
-async def webhook(request: Request):
-    payload = await request.json()
-    print("WEBHOOK PAYLOAD:", payload)
+def verify_ipn_signature(request_body: bytes, signature: str) -> bool:
+    if not NOWPAYMENTS_IPN_SECRET or not signature:
+        return False
 
-    data = payload.get("data", {}).get("attributes", {})
+    computed = hmac.new(
+        NOWPAYMENTS_IPN_SECRET.encode("utf-8"),
+        request_body,
+        hashlib.sha512,
+    ).hexdigest()
+    return hmac.compare_digest(computed, signature)
 
-    email = (
-        data.get("user_email")
-        or data.get("customer_email")
-        or data.get("email")
-    )
-    print("EXTRACTED EMAIL:", email)
 
-    if email:
-        add_paid_user(email)
-        try:
-            urllib.request.urlopen(f"https://girlpire.streamlit.app/?vip_email={email}")
-        except Exception as e:
-            print("ERROR:", e)
+async def handle_nowpayments_ipn(request: Request, require_signature: bool = False):
+    raw_body = await request.body()
+    payload = json.loads(raw_body)
+    print("CRYPTO PAYLOAD:", payload)
+
+    if require_signature:
+        signature = request.headers.get("x-nowpayments-sig", "")
+        if not verify_ipn_signature(raw_body, signature):
+            raise HTTPException(status_code=401, detail="Invalid signature")
+
+    payment_status = payload.get("payment_status")
+    order_id = payload.get("order_id")
+
+    if payment_status == "finished" and order_id:
+        add_paid_user(order_id)
 
     return {"ok": True}
+
+
+@app.post("/lemons/webhook")
+async def webhook(request: Request):
+    return await handle_nowpayments_ipn(request)
+
+
+@app.post("/nowpayments/webhook")
+async def nowpayments_webhook(request: Request):
+    return await handle_nowpayments_ipn(request, require_signature=True)

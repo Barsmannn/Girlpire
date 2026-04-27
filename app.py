@@ -914,19 +914,6 @@ def add_paid_user(email: str) -> bool:
     return write_email_store({"users": users, "paid_users": paid_users})
 
 
-def get_vip_email_param() -> str:
-    params = getattr(st, "query_params", None)
-    if params is None:
-        return ""
-    try:
-        vip_email = params.get("vip_email", "")
-    except Exception:
-        vip_email = ""
-    if isinstance(vip_email, (list, tuple)):
-        vip_email = vip_email[0] if vip_email else ""
-    return str(vip_email).strip().lower()
-
-
 def get_app_url() -> str:
     return str(
         secret_get(
@@ -1698,23 +1685,6 @@ def get_nowpayments_api_key() -> str:
     return str(os.environ.get("NOWPAYMENTS_API_KEY", "") or "").strip()
 
 
-def build_vip_email_return_url(email: str) -> str:
-    base_url = get_app_url() or "https://girlpire.streamlit.app"
-    split_url = urlsplit(base_url)
-    params = dict(parse_qsl(split_url.query, keep_blank_values=True))
-    params["vip_email"] = email
-    query = urlencode(params, doseq=True)
-    return urlunsplit(
-        (
-            split_url.scheme or "https",
-            split_url.netloc or "girlpire.streamlit.app",
-            split_url.path or "/",
-            query,
-            split_url.fragment,
-        )
-    )
-
-
 def create_crypto_payment(email: str) -> str:
     api_key = get_nowpayments_api_key()
     if not api_key or not email:
@@ -1727,7 +1697,7 @@ def create_crypto_payment(email: str) -> str:
         "price_currency": "usd",
         "order_id": email,
         "order_description": "Girlpire VIP",
-        "success_url": f"https://girlpire.streamlit.app/?vip_email={email}",
+        "success_url": get_app_url() or "https://girlpire.streamlit.app",
     }
 
     try:
@@ -3154,9 +3124,6 @@ def main() -> None:
 
     current_email = get_current_user_email()
     save_user_email(current_email)
-    vip_email = get_vip_email_param()
-    if vip_email:
-        add_paid_user(vip_email)
     paid_users = load_paid_users()
     is_paid = current_email in paid_users
     st.session_state["premium_unlocked"] = is_paid or check_subscription_status(current_email)
