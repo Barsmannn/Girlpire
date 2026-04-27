@@ -2,32 +2,35 @@ import hashlib
 import hmac
 import json
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 
 app = FastAPI()
 
-DATA_PATH = "emails.json"
+APP_DIR = Path(__file__).resolve().parent
+DATA_PATH = Path(os.getenv("WEBHOOK_DATA_PATH", str(APP_DIR / "emails.json")))
+LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 NOWPAYMENTS_IPN_SECRET = os.getenv("NOWPAYMENTS_IPN_SECRET", "")
 WEBHOOK_SYNC_SECRET = os.getenv("WEBHOOK_SYNC_SECRET", "")
 
 
 def ensure_file():
-    if not os.path.exists(DATA_PATH):
-        with open(DATA_PATH, "w", encoding="utf-8") as f:
-            json.dump({"users": [], "paid_users": []}, f)
+    if not DATA_PATH.exists():
+        DATA_PATH.write_text(
+            json.dumps({"users": [], "paid_users": []}, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
 
 def add_paid_user(email):
     ensure_file()
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
     if email and email not in data.get("paid_users", []):
         data["paid_users"].append(email)
 
-    with open(DATA_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    DATA_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def normalize_email(email: str) -> str:
@@ -40,8 +43,7 @@ def email_is_paid(email: str) -> bool:
         return False
 
     ensure_file()
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
     paid_users = {normalize_email(item) for item in data.get("paid_users", [])}
     return normalized_email in paid_users
@@ -55,6 +57,18 @@ def verify_ipn_signature(request_body: bytes, signature: str) -> bool:
         NOWPAYMENTS_IPN_SECRET.encode("utf-8"),
         request_body,
         hashlib.sha512,
+    ).hexdigest()
+    return hmac.compare_digest(computed, signature)
+
+
+def verify_lemon_signature(request_body: bytes, signature: str) -> bool:
+    if not LEMON_WEBHOOK_SECRET or not signature:
+        return False
+
+    computed = hmac.new(
+        LEMON_WEBHOOK_SECRET.encode("utf-8"),
+        request_body,
+        hashlib.sha256,
     ).hexdigest()
     return hmac.compare_digest(computed, signature)
 
@@ -89,7 +103,46 @@ async def handle_nowpayments_ipn(request: Request, require_signature: bool = Fal
 
 @app.post("/lemons/webhook")
 async def webhook(request: Request):
-    return await handle_nowpayments_ipn(request)
+    raw_body = await request.body()
+    payload = json.loads(raw_body)
+    print("LEMON PAYLOAD:", payload)
+
+    if LEMON_WEBHOOK_SECRET:
+        signature = request.headers.get("x-signature", "")
+        if not verify_lemon_signature(raw_body, signature):
+            raise HTTPException(status_code=401, detail="Invalid signature")
+
+    meta = payload.get("meta", {}) or {}
+    custom_data = meta.get("custom_data", {}) or {}
+    attributes = payload.get("data", {}).get("attributes", {}) or {}
+    event_name = str(meta.get("event_name", "") or request.headers.get("x-event-name", "")).strip().lower()
+    status = str(attributes.get("status", "")).strip().lower()
+
+    email = normalize_email(
+        custom_data.get("google_email")
+        or custom_data.get("email")
+        or attributes.get("user_email")
+        or attributes.get("customer_email")
+        or attributes.get("email")
+    )
+    print("LEMON EVENT:", event_name, "EMAIL:", email, "STATUS:", status)
+
+    paid_events = {
+        "order_created",
+        "subscription_created",
+        "subscription_updated",
+        "subscription_resumed",
+        "subscription_unpaused",
+        "subscription_plan_changed",
+        "subscription_payment_success",
+        "subscription_payment_recovered",
+    }
+    paid_statuses = {"paid", "active", "on_trial", "cancelled"}
+
+    if email and event_name in paid_events and (not status or status in paid_statuses):
+        add_paid_user(email)
+
+    return {"ok": True}
 
 
 @app.post("/nowpayments/webhook")

@@ -192,6 +192,8 @@ TRANSLATIONS = {
         "payment_notice": "VIP is unlocked only after a real payment is synced into your paid user list or a verified LemonSqueezy subscription record is found.",
         "vip_sync_notice": "Crypto payments unlock automatically after the confirmed webhook reaches Girlpire. If you just paid, refresh this page in a few seconds.",
         "refresh_vip_access": "I Already Paid - Refresh VIP Access",
+        "vip_refresh_success": "VIP access was found and refreshed.",
+        "vip_refresh_pending": "No verified VIP access was found yet. If you paid just now, wait a moment and try again.",
         "vip_title": "VIP Dashboard",
         "vip_desc": "This area is unlocked only for verified subscribers and uses your current calculator values as context.",
         "strategy_dashboard_title": "Your Creator Strategy Dashboard",
@@ -480,6 +482,8 @@ TRANSLATIONS = {
         "payment_notice": "VIP yalnizca gercek odeme paid user listenize senkronlandiginda veya dogrulanmis LemonSqueezy abonelik kaydi bulundugunda acilir.",
         "vip_sync_notice": "Kripto odemeleri, onaylanmis webhook Girlpire'a ulastiginda otomatik acilir. Az once odeme yaptiysaniz, bu sayfayi birkac saniye sonra yenileyin.",
         "refresh_vip_access": "Odeme Yaptim - VIP Erisimini Yenile",
+        "vip_refresh_success": "VIP erisimi bulundu ve yenilendi.",
+        "vip_refresh_pending": "Henuz dogrulanmis VIP erisimi bulunamadi. Az once odeme yaptiysaniz biraz bekleyip tekrar deneyin.",
         "vip_title": "VIP Paneli",
         "vip_desc": "Bu alan yalnizca dogrulanmis aboneler icin acilir ve mevcut hesaplayici degerlerinizi baglam olarak kullanir.",
         "strategy_dashboard_title": "Uretici Strateji Paneliniz",
@@ -2491,8 +2495,12 @@ def render_paywall(email: str) -> None:
             st.markdown(f"**{t('crypto_direct_link')}:** {saved_crypto_url}")
     st.caption(t("vip_sync_notice"))
     if st.button(t("refresh_vip_access"), use_container_width=True):
-        sync_paid_user_from_remote(email)
-        st.rerun()
+        refreshed = sync_paid_user_from_remote(email) or check_subscription_status(email)
+        if refreshed:
+            st.session_state["premium_unlocked"] = True
+            st.success(t("vip_refresh_success"))
+            st.rerun()
+        st.warning(t("vip_refresh_pending"))
     render_checkout_button(
         checkout_url,
         t("start_vip_membership"),
