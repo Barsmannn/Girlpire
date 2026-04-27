@@ -3860,53 +3860,6 @@ def render_vip_workspace(
     user_name = get_current_user_name() or "Creator"
     user_picture = get_user_claim("picture", "")
     initials = "".join(part[:1] for part in user_name.split()[:2]).upper() or "GP"
-    kpis = [
-        (
-            t("current_net_income"),
-            format_currency(float(snapshot["current_net_income"])),
-            str(snapshot["status"]),
-            "is-purple",
-            f"{int(snapshot['score'])}%",
-        ),
-        (
-            t("dashboard_card_growth"),
-            format_currency(float(snapshot["gap_value"])),
-            t("target_income_metric"),
-            "is-pink",
-            current_month,
-        ),
-        (
-            t("dashboard_card_margin"),
-            f"{margin:.0f}%",
-            t("net_income"),
-            "is-blue",
-            f"{margin:.0f}%",
-        ),
-        (
-            t("dashboard_card_arppu"),
-            format_currency(arppu),
-            t("dashboard_card_focus") + f": {current_focus}",
-            "is-purple",
-            f"{min(max(int(arppu * 6), 18), 96)}%",
-        ),
-    ]
-    kpi_cards = "".join(
-        f"""
-        <div class="wolf-dashboard-kpi {variant}">
-            <div class="wolf-dashboard-kpi-inline">
-                <div>
-                    <div class="wolf-dashboard-kpi-label">{html.escape(label)}</div>
-                    <div class="wolf-dashboard-kpi-value">{html.escape(value)}</div>
-                </div>
-                <div class="wolf-dashboard-ring" style="--progress: {html.escape(progress)};">
-                    <span>{html.escape(progress)}</span>
-                </div>
-            </div>
-            <div class="wolf-dashboard-kpi-note">{html.escape(note)}</div>
-        </div>
-        """
-        for label, value, note, variant, progress in kpis
-    )
     primary_nav_labels = [
         t("dashboard_nav_dashboard"),
         t("dashboard_nav_documents"),
@@ -3947,6 +3900,7 @@ def render_vip_workspace(
         if user_picture
         else f'<div class="wolf-dashboard-sidebar-avatar">{html.escape(initials)}</div>'
     )
+
     st.markdown(
         f"""
         <div class="wolf-dashboard-frame">
@@ -3962,7 +3916,8 @@ def render_vip_workspace(
         """,
         unsafe_allow_html=True,
     )
-    side_col, main_col, profile_col = st.columns([0.78, 1.95, 0.92], gap="large")
+
+    side_col, main_col, profile_col = st.columns([0.82, 1.8, 0.95], gap="large")
     with side_col:
         st.markdown(
             f"""
@@ -3989,6 +3944,7 @@ def render_vip_workspace(
             """,
             unsafe_allow_html=True,
         )
+
     with main_col:
         st.markdown(
             f"""
@@ -4017,47 +3973,74 @@ def render_vip_workspace(
             """,
             unsafe_allow_html=True,
         )
+
+        kpi_row_1 = st.columns(2, gap="large")
+        with kpi_row_1[0]:
+            render_metric_card(
+                t("current_net_income"),
+                format_currency(float(snapshot["current_net_income"])),
+                str(snapshot["status"]),
+            )
+        with kpi_row_1[1]:
+            render_metric_card(
+                t("dashboard_card_growth"),
+                format_currency(float(snapshot["gap_value"])),
+                t("target_income_metric"),
+            )
+
+        kpi_row_2 = st.columns(2, gap="large")
+        with kpi_row_2[0]:
+            render_metric_card(
+                t("dashboard_card_margin"),
+                f"{margin:.0f}%",
+                t("net_income"),
+            )
+        with kpi_row_2[1]:
+            render_metric_card(
+                t("dashboard_card_arppu"),
+                format_currency(arppu),
+                f"{t('dashboard_card_focus')}: {current_focus}",
+            )
+
         st.markdown(
             f"""
-            <div class="wolf-dashboard-shell">
-                <div class="wolf-dashboard-kpi-grid">
-                    {kpi_cards}
+            <div class="wolf-dashboard-chart">
+                <div class="wolf-dashboard-chart-header">
+                    <div>
+                        <div class="wolf-dashboard-chart-title">{html.escape(t("dashboard_chart_title"))}</div>
+                        <p class="wolf-dashboard-chart-copy">{html.escape(str(snapshot["explanation"]))}</p>
+                    </div>
+                    <div class="wolf-dashboard-pills">
+                        <div class="wolf-dashboard-pill">30D</div>
+                        <div class="wolf-dashboard-pill">90D</div>
+                        <div class="wolf-dashboard-pill is-active">VIP</div>
+                    </div>
                 </div>
-                <div class="wolf-dashboard-chart">
-                    <div class="wolf-dashboard-chart-header">
-                        <div>
-                            <div class="wolf-dashboard-chart-title">{html.escape(t("dashboard_chart_title"))}</div>
-                            <p class="wolf-dashboard-chart-copy">{html.escape(str(snapshot["explanation"]))}</p>
-                        </div>
-                        <div class="wolf-dashboard-pills">
-                            <div class="wolf-dashboard-pill">30D</div>
-                            <div class="wolf-dashboard-pill">90D</div>
-                            <div class="wolf-dashboard-pill is-active">VIP</div>
-                        </div>
-                    </div>
-                    <div class="wolf-dashboard-visual">
-                        <div class="wolf-dashboard-line"></div>
-                    </div>
+                <div class="wolf-dashboard-visual">
+                    <div class="wolf-dashboard-line"></div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        mini_left, mini_right = st.columns(2, gap="large")
-        with mini_left:
+
+        bottom_left, bottom_right = st.columns(2, gap="large")
+        with bottom_left:
             render_list_card(
                 t("dashboard_nav_strategy"),
                 [
                     t("immediate_fix_title"),
                     t("revenue_optimization_title"),
                     t("growth_focus_section"),
+                    t("biggest_bottleneck_title"),
                 ],
             )
-        with mini_right:
+        with bottom_right:
             render_note_card(
                 t("dashboard_nav_membership"),
                 f"{t('strategy_score')}: {int(snapshot['score'])}/100 • {t('focus_of_month')}: {current_focus}",
             )
+
     with profile_col:
         st.markdown(
             f"""
