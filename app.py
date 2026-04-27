@@ -14,6 +14,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -718,7 +719,7 @@ TRANSLATIONS = {
 }
 
 
-st.set_page_config(page_title=APP_TITLE, layout="centered")
+st.set_page_config(page_title=APP_TITLE, layout="wide")
 
 # Girlpire Admin Access (MVP Level)
 # Access is limited to the verified Google account email.
@@ -1116,6 +1117,65 @@ def build_email_return_url(action: str = "") -> str:
     )
 
 
+def build_app_url_with_params(**params: str | None) -> str:
+    base_url = get_app_url() or "http://localhost:8501"
+    split_url = urlsplit(base_url)
+    query_params = dict(parse_qsl(split_url.query, keep_blank_values=True))
+    for key, value in params.items():
+        if value is None:
+            query_params.pop(key, None)
+        else:
+            query_params[key] = str(value)
+    query = urlencode(query_params, doseq=True)
+    return urlunsplit(
+        (
+            split_url.scheme or "http",
+            split_url.netloc or "localhost:8501",
+            split_url.path or "/",
+            query,
+            "vip-content",
+        )
+    )
+
+
+def get_vip_section_options() -> dict[str, str]:
+    return {
+        "dashboard": t("vip_nav_dashboard"),
+        "calculator": t("vip_nav_calculator"),
+        "strategy": t("vip_nav_strategy"),
+        "tracking": t("vip_nav_tracking"),
+        "scenarios": t("vip_nav_scenarios"),
+        "guide": t("vip_nav_guide"),
+        "advanced": t("vip_nav_advanced"),
+    }
+
+
+def sync_vip_section_from_query_params() -> str:
+    options = get_vip_section_options()
+    params = getattr(st, "query_params", None)
+    selected = str(st.session_state.get("vip_section", "dashboard"))
+
+    if params is not None:
+        raw_section = params.get("vip_section", "")
+        if isinstance(raw_section, (list, tuple)):
+            raw_section = raw_section[0] if raw_section else ""
+        normalized = str(raw_section).strip().lower()
+        if normalized in options:
+            selected = normalized
+
+        raw_action = params.get("vip_action", "")
+        if isinstance(raw_action, (list, tuple)):
+            raw_action = raw_action[0] if raw_action else ""
+        if str(raw_action).strip().lower() == "logout" and is_logged_in():
+            st.logout()
+
+    if selected not in options:
+        selected = "dashboard"
+
+    st.session_state["vip_section"] = selected
+    return selected
+
+
 def get_resend_api_key() -> str:
     return str(RESEND_API_KEY or "").strip()
 
@@ -1195,6 +1255,19 @@ def send_to_all_users() -> tuple[int, int]:
 
 def format_currency(value: float) -> str:
     return f"${value:,.2f}"
+
+
+def format_compact_currency(value: float) -> str:
+    absolute = abs(value)
+    if absolute >= 1_000_000:
+        return f"${value / 1_000_000:.1f}m"
+    if absolute >= 1_000:
+        return f"${value / 1_000:.1f}k"
+    return f"${value:,.0f}"
+
+
+def clamp_percentage(value: float) -> int:
+    return max(0, min(int(round(value)), 100))
 
 
 def render_styles() -> None:
@@ -4460,6 +4533,791 @@ def render_vip_dashboard_overview(
     render_note_card(t("dashboard_chart_title"), str(dashboard_snapshot["explanation"]))
 
 
+def render_reference_vip_shell(
+    financials: dict[str, float | int | str],
+    dashboard_snapshot: dict[str, float | int | str],
+    current_focus_label: str,
+    selected_section: str,
+) -> None:
+    section_options = get_vip_section_options()
+    user_name = get_current_user_name() or "Girlpire Member"
+    user_picture = get_user_claim("picture", "")
+    initials = "".join(part[:1] for part in user_name.split()[:2]).upper() or "GP"
+    profile_role = section_options.get(selected_section, t("vip_nav_dashboard"))
+
+    net_income = float(financials.get("net_income", 0.0))
+    gross_income = float(financials.get("gross_income", 0.0))
+    total_expenses = float(st.session_state.get("monthly_expenses", 0.0)) + float(
+        st.session_state.get("agency_cost", 0.0)
+    )
+    target_income = float(dashboard_snapshot.get("target_income", 0.0))
+    gap_value = float(dashboard_snapshot.get("gap_value", 0.0))
+    score_value = int(dashboard_snapshot.get("score", 0))
+    status_value = str(dashboard_snapshot.get("status", t("status_average")))
+    follower_count = max(int(st.session_state.get("follower_count", 0)), 1)
+    arppu_value = gross_income / follower_count if follower_count > 0 else 0.0
+    margin_pct = (net_income / gross_income) * 100 if gross_income > 0 else 0.0
+    revenue_ring_pct = clamp_percentage(score_value)
+    expense_ring_pct = clamp_percentage((total_expenses / gross_income) * 100 if gross_income > 0 else 0.0)
+    target_pct = clamp_percentage((net_income / target_income) * 100 if target_income > 0 else 0.0)
+    chart_label = datetime.now().strftime("%A, %d %B %Y")
+    chart_tooltip = format_compact_currency(max(gross_income, net_income))
+
+    top_sections = ["dashboard", "calculator", "strategy", "tracking", "scenarios"]
+    bottom_sections = ["guide", "advanced"]
+    nav_icons = {
+        "dashboard": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+        "calculator": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/></svg>',
+        "strategy": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+        "tracking": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        "scenarios": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+        "guide": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+        "advanced": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 4.37 17l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82L4.21 7.24a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+        "logout": '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+    }
+
+    def nav_link(section_key: str, label: str, accent: bool = False) -> str:
+        target_url = html.escape(
+            build_app_url_with_params(
+                vip_section=section_key if section_key != "logout" else selected_section,
+                vip_action="logout" if section_key == "logout" else None,
+            ),
+            quote=True,
+        )
+        classes = "nav-item active" if section_key == selected_section else "nav-item"
+        style = ' style="color:#ef4444;"' if accent else ""
+        return (
+            f'<a class="{classes}" href="{target_url}" target="_top"{style}>'
+            f"{nav_icons.get(section_key, nav_icons['dashboard'])}"
+            f"<span>{html.escape(label)}</span></a>"
+        )
+
+    nav_html = "".join(
+        nav_link(section_key, section_options[section_key])
+        for section_key in top_sections
+        if section_key in section_options
+    )
+    utility_html = "".join(
+        nav_link(section_key, section_options[section_key])
+        for section_key in bottom_sections
+        if section_key in section_options
+    ) + nav_link("logout", t("dashboard_nav_logout"), accent=True)
+
+    avatar_html = (
+        f'<div class="profile-avatar"><img src="{html.escape(user_picture, quote=True)}" alt="{html.escape(user_name, quote=True)}"></div>'
+        if user_picture
+        else f'<div class="profile-avatar">{html.escape(initials)}</div>'
+    )
+
+    team_rows = [
+        ("Pricing Engine", f"{format_currency(arppu_value)} / fan", "P"),
+        ("Margin Control", f"{margin_pct:.0f}% margin", "M"),
+        ("Focus of Month", current_focus_label, "F"),
+    ]
+    team_html = "".join(
+        f"""
+        <div class="team-member">
+          <div class="member-avatar">{html.escape(initial)}</div>
+          <div>
+            <div class="member-name">{html.escape(name)}</div>
+            <div class="member-role">{html.escape(role)}</div>
+          </div>
+        </div>
+        """
+        for name, role, initial in team_rows
+    )
+
+    progress_rows = [
+        ("Pricing Ladder", "Lift revenue per fan", format_compact_currency(arppu_value), current_focus_label, 72, "#10b981"),
+        ("Retention Loop", "Protect margin", f"{margin_pct:.0f}%", status_value, 58, "#f59e0b"),
+        ("VIP Growth Map", "Close the revenue gap", format_compact_currency(gap_value), t("strategy_score"), max(target_pct, 84), "#7c3aed"),
+    ]
+    progress_html = "".join(
+        f"""
+        <div class="table-row"{' style="border-bottom:none;"' if index == len(progress_rows) - 1 else ''}>
+          <div class="table-name">
+            <div class="table-avatar">{html.escape(name[:1])}</div>
+            <span>{html.escape(name)}</span>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);">{html.escape(progress)}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:{pct}%;"></div></div>
+          </div>
+          <div style="font-weight:600;">{html.escape(achieved)}</div>
+          <div>
+            <span class="status-badge">
+              <span class="status-dot" style="background:{color};"></span>
+              {html.escape(status)}
+            </span>
+          </div>
+          <div class="dots-btn">⋯</div>
+        </div>
+        """
+        for index, (name, progress, achieved, status, pct, color) in enumerate(progress_rows)
+    )
+
+    circumference = 151
+    revenue_dash = max(0, min(circumference, round((revenue_ring_pct / 100) * circumference, 1)))
+    expense_dash = max(0, min(circumference, round((expense_ring_pct / 100) * circumference, 1)))
+    donut_dash = max(0, min(239, round((target_pct / 100) * 239, 1)))
+
+    template = textwrap.dedent(
+        """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Girlpire Dashboard</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #1e2340;
+            --bg-card-hover: #242b4d;
+            --bg-sidebar: #12172b;
+            --accent-purple: #7c3aed;
+            --accent-purple-light: #9d6ef8;
+            --accent-violet: #6d28d9;
+            --gradient-main: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+            --gradient-expense: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
+            --text-primary: #f0f0ff;
+            --text-secondary: #8b92b8;
+            --text-muted: #5a6080;
+            --border: rgba(124, 58, 237, 0.15);
+            --border-active: rgba(124, 58, 237, 0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --sidebar-width: 200px;
+          }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+          }
+          .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 0;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border);
+            position: relative;
+            z-index: 10;
+          }
+          .sidebar-logo {
+            padding: 0 20px 28px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+          }
+          .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13.5px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            position: relative;
+            text-decoration: none;
+          }
+          .nav-item:hover { color: var(--text-primary); background: rgba(124,58,237,0.08); }
+          .nav-item.active {
+            color: var(--text-primary);
+            background: rgba(124,58,237,0.12);
+            font-weight: 600;
+          }
+          .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: var(--gradient-main);
+            border-radius: 0 3px 3px 0;
+          }
+          .nav-icon {
+            width: 18px; height: 18px;
+            opacity: 0.8;
+            flex-shrink: 0;
+          }
+          .nav-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 16px 20px;
+          }
+          .sidebar-bottom {
+            margin-top: auto;
+            padding: 0 12px;
+          }
+          .upgrade-card {
+            background: rgba(124,58,237,0.15);
+            border: 1px solid var(--border-active);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            transition: all 0.2s;
+          }
+          .upgrade-icon {
+            width: 36px; height: 36px;
+            background: var(--gradient-main);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 16px;
+          }
+          .upgrade-card p { font-size: 12px; color: var(--text-primary); font-weight: 600; }
+          .upgrade-card span { font-size: 10px; color: var(--text-secondary); }
+          .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+          }
+          .center-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+          }
+          .center-panel::-webkit-scrollbar { width: 4px; }
+          .center-panel::-webkit-scrollbar-track { background: transparent; }
+          .center-panel::-webkit-scrollbar-thumb { background: var(--accent-purple); border-radius: 4px; }
+          .topbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
+          .search-box {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 13px;
+            transition: border-color 0.2s;
+          }
+          .topbar-btn {
+            width: 40px; height: 40px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 16px;
+          }
+          .badge {
+            position: absolute;
+            top: -4px; right: -4px;
+            width: 16px; height: 16px;
+            background: var(--accent-purple);
+            border-radius: 50%;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+          }
+          .stat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .stat-card {
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+          }
+          .stat-card.finance { background: var(--gradient-main); }
+          .stat-card.expense { background: var(--gradient-expense); }
+          .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 100px; height: 100px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+          }
+          .stat-label { font-size: 12px; font-weight: 500; opacity: 0.85; margin-bottom: 6px; }
+          .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+          .stat-ring {
+            width: 58px; height: 58px;
+            position: relative;
+            flex-shrink: 0;
+          }
+          .stat-ring svg { transform: rotate(-90deg); }
+          .stat-ring-label {
+            position: absolute;
+            inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+          }
+          .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+          }
+          .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+          }
+          .card-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+          .card-menu {
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            border-radius: 6px;
+          }
+          .chart-container {
+            position: relative;
+            height: 120px;
+          }
+          .chart-svg { width: 100%; height: 100%; }
+          .chart-tooltip {
+            background: var(--accent-purple);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            position: absolute;
+            top: 20px;
+            left: 55%;
+            transform: translateX(-50%);
+          }
+          .chart-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%; left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: var(--accent-purple);
+          }
+          .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+          }
+          .donut-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+          }
+          .donut-wrap {
+            position: relative;
+            width: 100px; height: 100px;
+          }
+          .donut-wrap svg { transform: rotate(-90deg); }
+          .donut-label {
+            position: absolute;
+            inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+          }
+          .donut-pct { font-size: 20px; font-weight: 700; }
+          .donut-legend {
+            display: flex;
+            gap: 16px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+          .legend-dot {
+            display: inline-block;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            margin-right: 5px;
+          }
+          .table-shell { overflow-x: auto; }
+          .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 1.2fr 0.5fr;
+            padding: 0 0 10px;
+            min-width: 640px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 10px;
+          }
+          .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 1.2fr 0.5fr;
+            min-width: 640px;
+            padding: 10px 0;
+            font-size: 12.5px;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+            border-radius: var(--radius-sm);
+          }
+          .table-row:hover { background: rgba(124,58,237,0.06); padding-left: 6px; padding-right: 6px; }
+          .table-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .table-avatar {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#7c3aed,#a855f7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700;
+            flex-shrink: 0;
+          }
+          .progress-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+            width: 80px;
+          }
+          .progress-fill {
+            height: 100%;
+            background: var(--gradient-main);
+            border-radius: 4px;
+          }
+          .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: var(--text-secondary);
+          }
+          .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+          .dots-btn { color: var(--text-muted); font-size: 14px; }
+          .right-panel {
+            width: 230px;
+            flex-shrink: 0;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+          }
+          .profile-card {
+            text-align: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+          }
+          .profile-avatar {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            margin: 0 auto 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            border: 3px solid rgba(124,58,237,0.4);
+            position: relative;
+            overflow: hidden;
+          }
+          .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+          .profile-name { font-size: 14px; font-weight: 700; }
+          .profile-role { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+          .profile-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+          }
+          .profile-btn {
+            width: 32px; height: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+          }
+          .section-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+          .about-text { font-size: 11px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px; }
+          .team-member {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+          }
+          .team-member:last-child { border-bottom: none; }
+          .member-avatar {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#7c3aed,#a855f7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700;
+            flex-shrink: 0;
+            overflow: hidden;
+          }
+          .member-name { font-size: 12px; font-weight: 600; }
+          .member-role { font-size: 10px; color: var(--text-muted); }
+          .send-money-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .send-money-label { font-size: 10px; color: var(--text-muted); }
+          .send-money-value { font-size: 16px; font-weight: 700; }
+          .send-money-left { display: flex; align-items: center; gap: 8px; }
+          .card-chip {
+            width: 30px; height: 20px;
+            background: var(--gradient-main);
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px;
+            font-weight: 700;
+          }
+          .view-all { font-size: 11px; color: var(--accent-purple-light); }
+          @media (max-width: 1180px) {
+            body { overflow: auto; }
+            .main { flex-direction: column; }
+            .right-panel {
+              width: 100%;
+              border-left: none;
+              border-top: 1px solid var(--border);
+            }
+          }
+          @media (max-width: 860px) {
+            body { display: block; }
+            .sidebar {
+              width: 100%;
+              border-right: none;
+              border-bottom: 1px solid var(--border);
+            }
+            .stat-row, .charts-row { grid-template-columns: 1fr; }
+            .center-panel { padding: 18px; }
+            .topbar { flex-wrap: wrap; }
+            .search-box { width: 100%; }
+          }
+        </style>
+        </head>
+        <body>
+        <aside class="sidebar">
+          <div class="sidebar-logo">Girlpire</div>
+          <nav>__NAV_ITEMS__</nav>
+          <div class="nav-divider"></div>
+          <nav>__UTILITY_ITEMS__</nav>
+          <div class="sidebar-bottom" style="margin-top:24px;">
+            <div class="upgrade-card">
+              <div class="upgrade-icon">💎</div>
+              <p>Girlpire VIP</p>
+              <span>Verified membership active</span>
+            </div>
+          </div>
+        </aside>
+        <div class="main">
+          <div class="center-panel">
+            <div class="topbar">
+              <div class="search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                __SEARCH_PLACEHOLDER__
+              </div>
+              <div class="topbar-btn">🛒<div class="badge">4</div></div>
+              <div class="topbar-btn">🔔<div class="badge">3</div></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-card finance">
+                <div>
+                  <div class="stat-label">Total Finance</div>
+                  <div class="stat-value">__FINANCE_VALUE__</div>
+                </div>
+                <div class="stat-ring">
+                  <svg width="58" height="58" viewBox="0 0 58 58">
+                    <circle cx="29" cy="29" r="24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="5"/>
+                    <circle cx="29" cy="29" r="24" fill="none" stroke="white" stroke-width="5" stroke-dasharray="__FINANCE_DASH__ 151" stroke-linecap="round"/>
+                  </svg>
+                  <div class="stat-ring-label">+__FINANCE_PCT__%</div>
+                </div>
+              </div>
+              <div class="stat-card expense">
+                <div>
+                  <div class="stat-label">Total Expense</div>
+                  <div class="stat-value">__EXPENSE_VALUE__</div>
+                </div>
+                <div class="stat-ring">
+                  <svg width="58" height="58" viewBox="0 0 58 58">
+                    <circle cx="29" cy="29" r="24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="5"/>
+                    <circle cx="29" cy="29" r="24" fill="none" stroke="white" stroke-width="5" stroke-dasharray="__EXPENSE_DASH__ 151" stroke-linecap="round"/>
+                  </svg>
+                  <div class="stat-ring-label">+__EXPENSE_PCT__%</div>
+                </div>
+              </div>
+            </div>
+            <div class="charts-row">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title" style="font-size:14px;color:var(--text-primary);font-weight:700;">__CHART_DATE__</div>
+                </div>
+                <div class="chart-container">
+                  <div class="chart-tooltip">__CHART_TOOLTIP__</div>
+                  <svg class="chart-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.4"/>
+                        <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    <line x1="0" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                    <line x1="0" y1="50" x2="300" y2="50" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                    <line x1="0" y1="80" x2="300" y2="80" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                    <path d="M0,85 L30,70 L60,65 L90,72 L120,58 L150,40 L180,50 L210,42 L240,35 L270,28 L300,18 L300,100 L0,100 Z" fill="url(#chartGrad)"/>
+                    <path d="M0,85 L30,70 L60,65 L90,72 L120,58 L150,40 L180,50 L210,42 L240,35 L270,28 L300,18" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="150" cy="40" r="5" fill="#7c3aed" stroke="white" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="chart-labels">
+                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title" style="font-size:14px;color:var(--text-primary);font-weight:700;">Your Finance Target</div>
+                  <div class="card-menu">⋮</div>
+                </div>
+                <div class="donut-container">
+                  <div class="donut-wrap">
+                    <svg width="100" height="100" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+                      <circle cx="50" cy="50" r="38" fill="none" stroke="url(#donutGrad)" stroke-width="10" stroke-dasharray="__DONUT_DASH__ 239" stroke-linecap="round"/>
+                      <defs>
+                        <linearGradient id="donutGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stop-color="#7c3aed"/>
+                          <stop offset="100%" stop-color="#a855f7"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div class="donut-label"><div class="donut-pct">__TARGET_PCT__%</div></div>
+                  </div>
+                  <div class="donut-legend">
+                    <span><span class="legend-dot" style="background:#7c3aed;"></span>Result Achieved</span>
+                    <span><span class="legend-dot" style="background:rgba(255,255,255,0.2);"></span>In The Process</span>
+                  </div>
+                  <div style="font-size:10px;color:var(--text-muted);text-align:center;">__FOCUS_TEXT__</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title" style="font-size:14px;color:var(--text-primary);font-weight:700;">Projects Finance</div>
+                <div class="view-all">__SECTION_LABEL__</div>
+              </div>
+              <div class="table-shell">
+                <div class="table-header">
+                  <span>Name</span>
+                  <span>Progress</span>
+                  <span>Achieved</span>
+                  <span>Status</span>
+                  <span></span>
+                </div>
+                __PROJECT_ROWS__
+              </div>
+            </div>
+          </div>
+          <aside class="right-panel">
+            <div class="profile-card">
+              __PROFILE_AVATAR__
+              <div class="profile-name">__PROFILE_NAME__</div>
+              <div class="profile-role">__PROFILE_ROLE__</div>
+              <div class="profile-actions">
+                <div class="profile-btn">👤</div>
+                <div class="profile-btn">✉️</div>
+                <div class="profile-btn">🔗</div>
+              </div>
+            </div>
+            <div>
+              <div class="section-title">About</div>
+              <div class="about-text">__ABOUT_TEXT__</div>
+              <div class="section-title">Team</div>
+              __TEAM_ROWS__
+            </div>
+            <div>
+              <div class="section-title">Send Money</div>
+              <div class="send-money-card">
+                <div class="send-money-left">
+                  <div class="card-chip">VIP</div>
+                  <div><div class="send-money-label">Current Goal</div></div>
+                </div>
+                <div class="send-money-value">__SEND_VALUE__</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        </body>
+        </html>
+        """
+    ).strip()
+
+    html_output = (
+        template.replace("__NAV_ITEMS__", nav_html)
+        .replace("__UTILITY_ITEMS__", utility_html)
+        .replace("__SEARCH_PLACEHOLDER__", html.escape(t("dashboard_search_placeholder")))
+        .replace("__FINANCE_VALUE__", html.escape(format_compact_currency(net_income)))
+        .replace("__FINANCE_DASH__", str(revenue_dash))
+        .replace("__FINANCE_PCT__", str(revenue_ring_pct))
+        .replace("__EXPENSE_VALUE__", html.escape(format_compact_currency(total_expenses)))
+        .replace("__EXPENSE_DASH__", str(expense_dash))
+        .replace("__EXPENSE_PCT__", str(expense_ring_pct))
+        .replace("__CHART_DATE__", html.escape(chart_label))
+        .replace("__CHART_TOOLTIP__", html.escape(chart_tooltip))
+        .replace("__DONUT_DASH__", str(donut_dash))
+        .replace("__TARGET_PCT__", str(target_pct))
+        .replace("__FOCUS_TEXT__", html.escape(current_focus_label))
+        .replace("__SECTION_LABEL__", html.escape(section_options.get(selected_section, t("vip_nav_dashboard"))))
+        .replace("__PROJECT_ROWS__", progress_html)
+        .replace("__PROFILE_AVATAR__", avatar_html)
+        .replace("__PROFILE_NAME__", html.escape(user_name))
+        .replace("__PROFILE_ROLE__", html.escape(profile_role))
+        .replace("__ABOUT_TEXT__", html.escape(str(dashboard_snapshot.get("explanation", ""))))
+        .replace("__TEAM_ROWS__", team_html)
+        .replace("__SEND_VALUE__", html.escape(format_compact_currency(target_income if target_income > 0 else gross_income)))
+    )
+    components.html(html_output, height=1160, scrolling=False)
+
+
 def render_vip_area(financials: dict[str, float | int | str]) -> None:
     if is_upgrade_flow():
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
@@ -4467,13 +5325,6 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
     elif is_from_email():
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
         render_note_card(t("email_welcome_title"), t("email_paid_prompt"))
-    st.divider()
-    st.subheader(t("vip_title"))
-    st.caption(t("vip_desc"))
-
-    reengagement_message = get_reengagement_message()
-    if reengagement_message:
-        render_note_card(t("monthly_strategy_cycle_title"), reengagement_message)
 
     current_profile = build_current_vip_profile(financials)
     stored_strategy = st.session_state.get("strategy_result")
@@ -4481,11 +5332,23 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
         stored_strategy = None
         st.session_state["strategy_result"] = None
     dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
+    current_focus_label = get_focus_of_month(float(financials["net_income"]))
+    if stored_strategy:
+        current_focus_label = str(stored_strategy.get("focus_of_month", current_focus_label))
+    selected_section = sync_vip_section_from_query_params()
+    render_reference_vip_shell(financials, dashboard_snapshot, current_focus_label, selected_section)
+    st.markdown('<div id="vip-content"></div>', unsafe_allow_html=True)
+
+    reengagement_message = get_reengagement_message()
+    if reengagement_message:
+        render_note_card(t("monthly_strategy_cycle_title"), reengagement_message)
+
     strategy_result = render_monthly_cycle_section(financials, stored_strategy)
     if isinstance(strategy_result, dict):
         st.session_state["strategy_result"] = strategy_result
         stored_strategy = strategy_result
         dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
+        current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
 
     experience_options = {
         "beginner": t("beginner"),
@@ -4540,13 +5403,12 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
         strategy_result = refresh_monthly_strategy(financials)
         stored_strategy = strategy_result
         dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
+        current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
 
     strategy_result = st.session_state.get("strategy_result")
-    current_focus_label = get_focus_of_month(float(financials["net_income"]))
     if strategy_result:
         dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, strategy_result)
         current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
-    selected_section = render_vip_sidebar(current_focus_label)
 
     tracking_target = (
         float(strategy_result["target_income"])
