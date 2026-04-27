@@ -1673,15 +1673,9 @@ def fetch_lemonsqueezy_subscriptions(email: str) -> list[dict]:
     return _fetch_lemonsqueezy_subscriptions(email)
 
 
-def check_subscription_status(email: str, *, force_refresh: bool = False) -> bool:
+def check_lemonsqueezy_status(email: str, *, force_refresh: bool = False) -> bool:
     if not email:
         return False
-
-    if email.lower() in set(load_paid_users()):
-        return True
-
-    if sync_paid_user_from_remote(email):
-        return True
 
     try:
         if force_refresh:
@@ -1691,10 +1685,24 @@ def check_subscription_status(email: str, *, force_refresh: bool = False) -> boo
             records = fetch_lemonsqueezy_subscriptions(email)
     except Exception:
         return False
+
     is_active = any(subscription_record_is_valid(record) for record in records)
     if is_active:
         add_paid_user(email)
     return is_active
+
+
+def check_subscription_status(email: str, *, force_refresh: bool = False) -> bool:
+    if not email:
+        return False
+
+    if email.lower() in set(load_paid_users()):
+        return True
+
+    if check_lemonsqueezy_status(email, force_refresh=force_refresh):
+        return True
+
+    return sync_paid_user_from_remote(email)
 
 
 def build_checkout_url(email: str) -> str:
@@ -2518,8 +2526,8 @@ def render_paywall(email: str) -> None:
             st.markdown(f"**{t('crypto_direct_link')}:** {saved_crypto_url}")
     st.caption(t("vip_sync_notice"))
     if st.button(t("refresh_vip_access"), use_container_width=True):
-        refreshed = sync_paid_user_from_remote(email) or check_subscription_status(
-            email, force_refresh=True
+        refreshed = check_lemonsqueezy_status(email, force_refresh=True) or sync_paid_user_from_remote(
+            email
         )
         if refreshed:
             st.session_state["premium_unlocked"] = True
