@@ -3518,14 +3518,14 @@ def render_free_calculator() -> dict[str, float | int | str] | None:
             follower_count = st.number_input(
                 t("follower_count"),
                 min_value=0,
-                value=int(st.session_state.get("follower_count", 150)),
+                value=int(st.session_state.get("follower_count", 0)),
                 step=10,
                 key="follower_count",
             )
             monthly_sub_price = st.number_input(
                 t("monthly_sub_price"),
                 min_value=0.0,
-                value=float(st.session_state.get("monthly_sub_price", 9.99)),
+                value=float(st.session_state.get("monthly_sub_price", 0.0)),
                 step=0.5,
                 key="monthly_sub_price",
             )
@@ -3533,14 +3533,14 @@ def render_free_calculator() -> dict[str, float | int | str] | None:
             expected_tips_ppv = st.number_input(
                 t("expected_tips_ppv"),
                 min_value=0.0,
-                value=float(st.session_state.get("expected_tips_ppv", 500.0)),
+                value=float(st.session_state.get("expected_tips_ppv", 0.0)),
                 step=25.0,
                 key="expected_tips_ppv",
             )
             target_income = st.number_input(
                 t("target_monthly_income_input"),
                 min_value=0.0,
-                value=float(st.session_state.get("target_income_goal", 5000.0)),
+                value=float(st.session_state.get("target_income_goal", 0.0)),
                 step=100.0,
                 key="target_income_goal",
             )
@@ -5318,6 +5318,96 @@ def render_reference_vip_shell(
     components.html(html_output, height=1160, scrolling=False)
 
 
+def render_vip_calculator_section() -> dict[str, float | int | str] | None:
+    st.subheader(t("vip_nav_calculator"))
+    with st.form("vip_money_engine_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            follower_count = st.number_input(
+                t("follower_count"),
+                min_value=0,
+                value=int(st.session_state.get("follower_count", 0)),
+                step=10,
+                key="vip_calc_follower_count",
+            )
+            monthly_sub_price = st.number_input(
+                t("monthly_sub_price"),
+                min_value=0.0,
+                value=float(st.session_state.get("monthly_sub_price", 0.0)),
+                step=0.5,
+                key="vip_calc_monthly_sub_price",
+            )
+        with col2:
+            expected_tips_ppv = st.number_input(
+                t("expected_tips_ppv"),
+                min_value=0.0,
+                value=float(st.session_state.get("expected_tips_ppv", 0.0)),
+                step=25.0,
+                key="vip_calc_expected_tips_ppv",
+            )
+            target_income = st.number_input(
+                t("target_monthly_income_input"),
+                min_value=0.0,
+                value=float(st.session_state.get("target_income_goal", 0.0)),
+                step=100.0,
+                key="vip_calc_target_income_goal",
+            )
+        submitted = st.form_submit_button(
+            t("calculate_money_engine"),
+            use_container_width=True,
+        )
+
+    if submitted:
+        with st.spinner(t("analyzing_potential")):
+            time.sleep(1.0)
+            st.session_state["follower_count"] = int(follower_count)
+            st.session_state["monthly_sub_price"] = float(monthly_sub_price)
+            st.session_state["expected_tips_ppv"] = float(expected_tips_ppv)
+            st.session_state["target_income_goal"] = float(target_income)
+            st.session_state["money_engine_result"] = build_money_engine_result(
+                int(follower_count),
+                float(monthly_sub_price),
+                float(expected_tips_ppv),
+                float(target_income),
+            )
+        st.rerun()
+
+    result = st.session_state.get("money_engine_result")
+    if not isinstance(result, dict):
+        render_note_card(t("vip_nav_calculator"), t("free_desc"))
+        return None
+
+    st.caption(t("estimate_note"))
+    metrics = [
+        (t("gross_income"), format_currency(float(result["gross_income"]))),
+        (t("platform_fee"), format_currency(float(result["platform_fee"]))),
+        (t("net_income"), format_currency(float(result["net_income"]))),
+        (t("yearly_net_income"), format_currency(float(result["yearly_net_income"]))),
+    ]
+    metric_columns = st.columns(2)
+    for index, (label, value) in enumerate(metrics):
+        with metric_columns[index % 2]:
+            render_metric_card(label, value)
+
+    secondary_row = st.columns(2)
+    with secondary_row[0]:
+        render_metric_card(
+            t("revenue_per_fan"),
+            t("revenue_per_fan_value").format(amount=format_currency(float(result["arppu"]))),
+            str(result["arppu_insight"]),
+        )
+    with secondary_row[1]:
+        render_metric_card(
+            t("target_engine_title"),
+            f"{int(result['required_subscribers']):,}",
+            t("target_engine_body").format(
+                target=format_currency(float(result["target_income"])),
+                fans=f"{int(result['required_subscribers']):,}",
+            ),
+        )
+    return result
+
+
 def render_vip_area(financials: dict[str, float | int | str]) -> None:
     if is_upgrade_flow():
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
@@ -5326,89 +5416,112 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
         render_note_card(t("email_welcome_title"), t("email_paid_prompt"))
 
+    current_email = get_current_user_email()
     current_profile = build_current_vip_profile(financials)
     stored_strategy = st.session_state.get("strategy_result")
     if not isinstance(stored_strategy, dict) or "current_net_income" not in stored_strategy:
         stored_strategy = None
         st.session_state["strategy_result"] = None
+    base_result = st.session_state.get("money_engine_result")
+    has_live_money_data = isinstance(base_result, dict)
+    shell_financials = financials
+    shell_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
+    if not has_live_money_data:
+        shell_financials = calculate_financials(0, 0.0, 0.0)
+        shell_snapshot = {
+            "current_net_income": 0.0,
+            "target_income": 0.0,
+            "gap_value": 0.0,
+            "score": 0,
+            "status": str(t("status_average")),
+            "explanation": str(t("vip_desc")),
+        }
     dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
-    current_focus_label = get_focus_of_month(float(financials["net_income"]))
-    if stored_strategy:
-        current_focus_label = str(stored_strategy.get("focus_of_month", current_focus_label))
+    current_focus_label = (
+        str(stored_strategy.get("focus_of_month", ""))
+        if stored_strategy
+        else get_focus_of_month(float(financials["net_income"]))
+    )
+    if not has_live_money_data:
+        current_focus_label = t("vip_nav_dashboard")
     selected_section = sync_vip_section_from_query_params()
-    render_reference_vip_shell(financials, dashboard_snapshot, current_focus_label, selected_section)
+    render_reference_vip_shell(shell_financials, shell_snapshot, current_focus_label, selected_section)
     st.markdown('<div id="vip-content"></div>', unsafe_allow_html=True)
 
     reengagement_message = get_reengagement_message()
-    if reengagement_message:
-        render_note_card(t("monthly_strategy_cycle_title"), reengagement_message)
+    strategy_result = stored_strategy
 
-    strategy_result = render_monthly_cycle_section(financials, stored_strategy)
-    if isinstance(strategy_result, dict):
-        st.session_state["strategy_result"] = strategy_result
-        stored_strategy = strategy_result
-        dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
-        current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
+    if selected_section == "strategy":
+        if reengagement_message:
+            render_note_card(t("monthly_strategy_cycle_title"), reengagement_message)
+        strategy_result = render_monthly_cycle_section(financials, stored_strategy)
+        if isinstance(strategy_result, dict):
+            st.session_state["strategy_result"] = strategy_result
+            stored_strategy = strategy_result
+            dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
+            current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
 
-    experience_options = {
-        "beginner": t("beginner"),
-        "intermediate": t("intermediate"),
-        "advanced": t("advanced"),
-    }
-    challenge_options = {
-        "traffic": t("traffic"),
-        "conversion": t("conversion"),
-        "pricing": t("pricing"),
-        "retention": t("retention"),
-        "consistency": t("consistency"),
-    }
+        experience_options = {
+            "beginner": t("beginner"),
+            "intermediate": t("intermediate"),
+            "advanced": t("advanced"),
+        }
+        challenge_options = {
+            "traffic": t("traffic"),
+            "conversion": t("conversion"),
+            "pricing": t("pricing"),
+            "retention": t("retention"),
+            "consistency": t("consistency"),
+        }
 
-    with st.form("vip_strategy_form"):
-        st.markdown(f"### {t('strategy_consultant')}")
-        left, right = st.columns(2)
-        with left:
-            daily_time = st.number_input(
-                t("daily_time"),
-                min_value=0.5,
-                value=float(current_profile["daily_time"]),
-                step=0.5,
-                key="vip_daily_time",
-            )
-            target_income = st.number_input(
-                t("target_income"),
-                min_value=0.0,
-                value=float(current_profile["target_income"]),
-                step=100.0,
-                key="vip_target_income",
-            )
-        with right:
-            experience_level_code = st.selectbox(
-                t("experience_level"),
-                options=list(experience_options.keys()),
-                index=list(experience_options.keys()).index(str(current_profile["experience_level_code"])),
-                format_func=lambda key: experience_options[key],
-                key="vip_experience_level",
-            )
-            main_challenge_code = st.selectbox(
-                t("main_challenge"),
-                options=list(challenge_options.keys()),
-                index=list(challenge_options.keys()).index(str(current_profile["main_challenge"])),
-                format_func=lambda key: challenge_options[key],
-                key="vip_main_challenge",
-            )
+        with st.form("vip_strategy_form"):
+            st.markdown(f"### {t('strategy_consultant')}")
+            left, right = st.columns(2)
+            with left:
+                st.number_input(
+                    t("daily_time"),
+                    min_value=0.5,
+                    value=float(current_profile["daily_time"]),
+                    step=0.5,
+                    key="vip_daily_time",
+                )
+                st.number_input(
+                    t("target_income"),
+                    min_value=0.0,
+                    value=float(current_profile["target_income"]),
+                    step=100.0,
+                    key="vip_target_income",
+                )
+            with right:
+                st.selectbox(
+                    t("experience_level"),
+                    options=list(experience_options.keys()),
+                    index=list(experience_options.keys()).index(str(current_profile["experience_level_code"])),
+                    format_func=lambda key: experience_options[key],
+                    key="vip_experience_level",
+                )
+                st.selectbox(
+                    t("main_challenge"),
+                    options=list(challenge_options.keys()),
+                    index=list(challenge_options.keys()).index(str(current_profile["main_challenge"])),
+                    format_func=lambda key: challenge_options[key],
+                    key="vip_main_challenge",
+                )
 
-        submitted = st.form_submit_button(t("generate_strategy"), use_container_width=True)
+            submitted = st.form_submit_button(t("generate_strategy"), use_container_width=True)
 
-    if submitted:
-        strategy_result = refresh_monthly_strategy(financials)
-        stored_strategy = strategy_result
-        dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
-        current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
+        if submitted:
+            strategy_result = refresh_monthly_strategy(financials)
+            stored_strategy = strategy_result
+            st.session_state["strategy_result"] = strategy_result
+            dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
+            current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
+            st.rerun()
 
-    strategy_result = st.session_state.get("strategy_result")
-    if strategy_result:
-        dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, strategy_result)
-        current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
+        strategy_result = st.session_state.get("strategy_result")
+        if strategy_result:
+            dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, strategy_result)
+            current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
 
     tracking_target = (
         float(strategy_result["target_income"])
@@ -5432,19 +5545,12 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
             render_structured_strategy(strategy_result)
         else:
             render_note_card(t("strategy_consultant"), t("strategy_generate_hint"))
+        render_admin_panel(current_email, show_wrapper=False)
 
     elif selected_section == "calculator":
-        st.subheader(t("vip_nav_calculator"))
-        metric_row = st.columns(2)
-        with metric_row[0]:
-            render_metric_card(t("gross_income"), format_currency(float(financials["gross_income"])))
-        with metric_row[1]:
-            render_metric_card(t("net_income"), format_currency(float(financials["net_income"])))
-        metric_row_2 = st.columns(2)
-        with metric_row_2[0]:
-            render_metric_card(t("platform_fee"), format_currency(float(financials["platform_fee"])))
-        with metric_row_2[1]:
-            render_metric_card(t("yearly_net_income"), format_currency(float(financials["yearly_net_income"])))
+        calculator_result = render_vip_calculator_section()
+        if isinstance(calculator_result, dict):
+            financials = calculator_result
 
     elif selected_section == "strategy":
         render_strategy_dashboard(dashboard_snapshot)
@@ -5532,7 +5638,7 @@ def render_footer() -> None:
     )
 
 
-def render_admin_panel(user_email: str) -> None:
+def render_admin_panel(user_email: str, show_wrapper: bool = True) -> None:
     if not is_admin_user(user_email):
         return
 
@@ -5553,7 +5659,8 @@ def render_admin_panel(user_email: str) -> None:
         if 0 <= days_since_created <= 7:
             new_users.append(user_record)
 
-    st.markdown("---")
+    if show_wrapper:
+        st.markdown("---")
     st.subheader("Girlpire Admin")
 
     stat_columns = st.columns(2)
@@ -5679,7 +5786,6 @@ def main() -> None:
         st.warning(t("vip_upgrade_message"))
         render_paywall(current_email)
 
-    render_admin_panel(current_email)
     render_footer()
 
 
