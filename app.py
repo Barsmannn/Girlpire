@@ -273,6 +273,26 @@ TRANSLATIONS = {
         "consistency": "Consistency",
         "generate_strategy": "Generate VIP Strategy",
         "strategy_generate_hint": "Generate your strategy to unlock immediate fixes, revenue optimization, and the 30-day plan.",
+        "quick_strategy_title": "Smart Strategy Engine",
+        "quick_strategy_desc": "Get a fast rule-based strategy report using your growth, engagement, pricing, and posting inputs.",
+        "quick_strategy_followers": "Followers",
+        "quick_strategy_engagement": "Engagement %",
+        "quick_strategy_price": "Subscription Price ($)",
+        "quick_strategy_posts": "Posts per week",
+        "analyze_my_strategy": "Analyze My Strategy",
+        "strategy_report_title": "Strategy Report",
+        "quick_strategy_level_early": "You are in early stage. Focus on growth, not monetization.",
+        "quick_strategy_level_mid": "You have growth potential but an underutilized audience.",
+        "quick_strategy_level_high": "You have a monetizable audience. Focus on scaling.",
+        "quick_strategy_engagement_low": "Your engagement is low. Use stronger hooks and sharper captions to increase reaction.",
+        "quick_strategy_engagement_mid": "Engagement is average. Improve consistency and story usage.",
+        "quick_strategy_engagement_high": "Strong engagement. You can push premium offers harder.",
+        "quick_strategy_price_high": "You are overpriced for your current audience size. Reduce price to improve conversion.",
+        "quick_strategy_price_low": "You are underpricing. Increase price gradually while improving perceived value.",
+        "quick_strategy_price_ok": "Your pricing is acceptable for your current level.",
+        "quick_strategy_content_low": "You are posting too little. Increase content frequency.",
+        "quick_strategy_content_high": "You are posting too much. Focus on quality instead of quantity.",
+        "quick_strategy_content_ok": "Your posting frequency is in a healthy range.",
         "groq_fallback_missing": "Groq is not configured. Showing the built-in rule-based strategy consultant instead.",
         "groq_fallback_failed": "Groq could not respond right now. Showing the built-in rule-based strategy consultant instead.",
         "immediate_fix_title": "Immediate Fix (Next 7 Days)",
@@ -609,6 +629,26 @@ TRANSLATIONS = {
         "consistency": "Tutarlilik",
         "generate_strategy": "VIP Strateji Uret",
         "strategy_generate_hint": "Anlik duzeltmeleri, gelir optimizasyonunu ve 30 gunluk plani acmak icin stratejinizi uretin.",
+        "quick_strategy_title": "Akilli Strateji Motoru",
+        "quick_strategy_desc": "Buyume, etkilesim, fiyat ve icerik ritminize gore hizli bir kural tabanli strateji raporu alin.",
+        "quick_strategy_followers": "Takipci",
+        "quick_strategy_engagement": "Etkilesim %",
+        "quick_strategy_price": "Abonelik Fiyati ($)",
+        "quick_strategy_posts": "Haftalik Gonderi",
+        "analyze_my_strategy": "Stratejimi Analiz Et",
+        "strategy_report_title": "Strateji Raporu",
+        "quick_strategy_level_early": "Erken asamadasiniz. Monetizasyondan once buyumeye odaklanin.",
+        "quick_strategy_level_mid": "Buyume potansiyeliniz var ancak kitleniz yeterince kullanilmiyor.",
+        "quick_strategy_level_high": "Monetize edilebilir bir kitleniz var. Olceklendirmeye odaklanin.",
+        "quick_strategy_engagement_low": "Etkilesiminiz dusuk. Tepkiyi artirmak icin daha guclu hook'lar ve daha keskin caption'lar kullanin.",
+        "quick_strategy_engagement_mid": "Etkilesim ortalama. Tutarliligi ve story kullanimini iyilestirin.",
+        "quick_strategy_engagement_high": "Etkilesim guclu. Premium teklifleri daha agresif sekilde one cikarabilirsiniz.",
+        "quick_strategy_price_high": "Mevcut kitle buyuklugunuze gore fazla pahalisiniz. Donusumu artirmak icin fiyati dusurun.",
+        "quick_strategy_price_low": "Dusuk fiyatliyorsunuz. Algilanan degeri guclendirirken fiyati kademeli yukseltin.",
+        "quick_strategy_price_ok": "Fiyat seviyeniz mevcut seviyeniz icin uygun.",
+        "quick_strategy_content_low": "Cok az paylasim yapiyorsunuz. Icerik frekansini artirin.",
+        "quick_strategy_content_high": "Cok fazla paylasim yapiyorsunuz. Nicelik yerine kaliteye odaklanin.",
+        "quick_strategy_content_ok": "Paylasim frekansiniz saglikli aralikta.",
         "groq_fallback_missing": "Groq yapilandirilmamis. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "groq_fallback_failed": "Groq su anda yanit veremedi. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "immediate_fix_title": "Anlik Duzeltme (Sonraki 7 Gun)",
@@ -3493,6 +3533,98 @@ def generate_strategy_package(
     return package
 
 
+def generate_quick_strategy(
+    followers: int,
+    engagement: float,
+    price: float,
+    posts_per_week: int,
+) -> list[str]:
+    strategies: list[str] = []
+
+    if followers < 5000:
+        strategies.append(t("quick_strategy_level_early"))
+    elif followers < 20000:
+        strategies.append(t("quick_strategy_level_mid"))
+    else:
+        strategies.append(t("quick_strategy_level_high"))
+
+    if engagement < 2:
+        strategies.append(t("quick_strategy_engagement_low"))
+    elif engagement < 5:
+        strategies.append(t("quick_strategy_engagement_mid"))
+    else:
+        strategies.append(t("quick_strategy_engagement_high"))
+
+    if price > 20 and followers < 10000:
+        strategies.append(t("quick_strategy_price_high"))
+    elif price < 8:
+        strategies.append(t("quick_strategy_price_low"))
+    else:
+        strategies.append(t("quick_strategy_price_ok"))
+
+    if posts_per_week < 3:
+        strategies.append(t("quick_strategy_content_low"))
+    elif posts_per_week > 10:
+        strategies.append(t("quick_strategy_content_high"))
+    else:
+        strategies.append(t("quick_strategy_content_ok"))
+
+    return strategies
+
+
+def render_quick_strategy_engine() -> None:
+    st.divider()
+    st.markdown(f"### {t('quick_strategy_title')}")
+    st.caption(t("quick_strategy_desc"))
+
+    base_followers = max(int(st.session_state.get("follower_count", 1000)), 0)
+    base_price = max(float(st.session_state.get("monthly_sub_price", 10.0)), 0.0)
+
+    left, right = st.columns(2)
+    with left:
+        followers = st.number_input(
+            t("quick_strategy_followers"),
+            min_value=0,
+            value=base_followers if "quick_strategy_followers" not in st.session_state else int(st.session_state["quick_strategy_followers"]),
+            step=100,
+            key="quick_strategy_followers",
+        )
+        engagement = st.number_input(
+            t("quick_strategy_engagement"),
+            min_value=0.0,
+            value=float(st.session_state.get("quick_strategy_engagement", 1.5)),
+            step=0.1,
+            key="quick_strategy_engagement",
+        )
+    with right:
+        price = st.number_input(
+            t("quick_strategy_price"),
+            min_value=0.0,
+            value=base_price if "quick_strategy_price" not in st.session_state else float(st.session_state["quick_strategy_price"]),
+            step=1.0,
+            key="quick_strategy_price",
+        )
+        posts_per_week = st.number_input(
+            t("quick_strategy_posts"),
+            min_value=0,
+            value=int(st.session_state.get("quick_strategy_posts", 3)),
+            step=1,
+            key="quick_strategy_posts",
+        )
+
+    if st.button(t("analyze_my_strategy"), use_container_width=True, key="analyze_my_strategy_button"):
+        st.session_state["quick_strategy_result"] = generate_quick_strategy(
+            int(followers),
+            float(engagement),
+            float(price),
+            int(posts_per_week),
+        )
+
+    quick_result = st.session_state.get("quick_strategy_result")
+    if isinstance(quick_result, list) and quick_result:
+        render_list_card(t("strategy_report_title"), [str(item) for item in quick_result])
+
+
 def build_anonymous_creator_bible() -> str:
     return textwrap.dedent(
         """
@@ -5707,6 +5839,8 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
                 dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, stored_strategy)
                 current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
                 st.rerun()
+
+            render_quick_strategy_engine()
 
             strategy_result = st.session_state.get("strategy_result")
             if strategy_result:
