@@ -1713,6 +1713,20 @@ def get_nowpayments_api_key() -> str:
     return ""
 
 
+def get_nowpayments_preferred_pay_currency() -> str:
+    candidate_values = (
+        secret_get("nowpayments", "preferred_pay_currency", default=""),
+        secret_get("NOWPAYMENTS_PREFERRED_PAY_CURRENCY", default=""),
+        os.environ.get("NOWPAYMENTS_PREFERRED_PAY_CURRENCY", ""),
+        "usdttrc20",
+    )
+    for value in candidate_values:
+        normalized = str(value or "").strip().lower()
+        if normalized:
+            return normalized
+    return "usdttrc20"
+
+
 def get_webhook_base_url() -> str:
     return str(
         secret_get(
@@ -1779,7 +1793,7 @@ def create_crypto_payment(email: str) -> str:
 
     url = "https://api.nowpayments.io/v1/invoice"
     headers = {"x-api-key": api_key}
-    payload = {
+    base_payload = {
         "price_amount": 19.99,
         "price_currency": "usd",
         "order_id": email,
@@ -1787,14 +1801,25 @@ def create_crypto_payment(email: str) -> str:
         "success_url": get_app_url() or "https://girlpire.streamlit.app",
     }
 
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-    except (requests.RequestException, ValueError):
-        return ""
+    def send_invoice(payload: dict[str, object]) -> str:
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError):
+            return ""
+        return str(data.get("invoice_url") or "")
 
-    return str(data.get("invoice_url") or "")
+    preferred_currency = get_nowpayments_preferred_pay_currency()
+    preferred_payload = dict(base_payload)
+    if preferred_currency:
+        preferred_payload["pay_currency"] = preferred_currency
+
+    preferred_invoice_url = send_invoice(preferred_payload)
+    if preferred_invoice_url:
+        return preferred_invoice_url
+
+    return send_invoice(base_payload)
 
 
 def build_current_vip_profile(
