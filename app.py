@@ -80,6 +80,15 @@ TRANSLATIONS = {
         "dashboard_card_focus": "Current Priority",
         "dashboard_chart_title": "Monthly Performance Map",
         "dashboard_chart_body": "Use this workspace to identify where revenue is leaking, what to optimize next and how close you are to your next monthly target.",
+        "vip_nav_section": "VIP Sections",
+        "vip_nav_dashboard": "Dashboard",
+        "vip_nav_strategy": "Strategy",
+        "vip_nav_tracking": "Tracking",
+        "vip_nav_guide": "Guide",
+        "vip_nav_advanced": "Advanced",
+        "vip_nav_calculator": "Calculator",
+        "vip_nav_scenarios": "Scenarios",
+        "vip_sidebar_status": "VIP Active",
         "language": "Language",
         "logged_in_as": "Logged in as",
         "logout": "Logout",
@@ -403,6 +412,15 @@ TRANSLATIONS = {
         "dashboard_card_focus": "Mevcut Oncelik",
         "dashboard_chart_title": "Aylik Performans Haritasi",
         "dashboard_chart_body": "Bu alani gelirin nerede sizdigini, sirada neyin optimize edilmesi gerektigini ve bir sonraki aylik hedefe ne kadar yakin oldugunu gormek icin kullan.",
+        "vip_nav_section": "VIP Bolumleri",
+        "vip_nav_dashboard": "Dashboard",
+        "vip_nav_strategy": "Strateji",
+        "vip_nav_tracking": "Takip",
+        "vip_nav_guide": "Rehber",
+        "vip_nav_advanced": "Gelismis",
+        "vip_nav_calculator": "Hesaplayici",
+        "vip_nav_scenarios": "Senaryolar",
+        "vip_sidebar_status": "VIP Aktif",
         "language": "Dil",
         "logged_in_as": "Giris yapan kullanici",
         "logout": "Cikis Yap",
@@ -4337,6 +4355,111 @@ def render_strategy_export(
     )
 
 
+def render_vip_sidebar(current_focus_label: str) -> str:
+    user_name = get_current_user_name() or "Creator"
+    user_email = get_current_user_email() or ""
+    user_picture = get_user_claim("picture", "")
+    initials = "".join(part[:1] for part in user_name.split()[:2]).upper() or "GP"
+
+    with st.sidebar:
+        st.markdown(f"### {t('vip_title')}")
+        if user_picture:
+            st.image(user_picture, width=72)
+        else:
+            st.markdown(
+                f'<div class="wolf-avatar">{html.escape(initials)}</div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown(f"**{user_name}**")
+        if user_email:
+            st.caption(user_email)
+        st.success(t("vip_sidebar_status"))
+        st.caption(f"{t('dashboard_focus_chip')}: {current_focus_label}")
+
+        section_options = {
+            "dashboard": t("vip_nav_dashboard"),
+            "calculator": t("vip_nav_calculator"),
+            "strategy": t("vip_nav_strategy"),
+            "tracking": t("vip_nav_tracking"),
+            "scenarios": t("vip_nav_scenarios"),
+            "guide": t("vip_nav_guide"),
+            "advanced": t("vip_nav_advanced"),
+        }
+        current_section = str(st.session_state.get("vip_section", "dashboard"))
+        if current_section not in section_options:
+            current_section = "dashboard"
+        selected_section = st.radio(
+            t("vip_nav_section"),
+            options=list(section_options.keys()),
+            index=list(section_options.keys()).index(current_section),
+            format_func=lambda key: section_options[key],
+            key="vip_section_radio",
+        )
+        st.session_state["vip_section"] = selected_section
+        st.divider()
+        st.button(t("logout"), use_container_width=True, on_click=st.logout, key="vip_sidebar_logout")
+
+    return str(st.session_state.get("vip_section", "dashboard"))
+
+
+def render_vip_dashboard_overview(
+    financials: dict[str, float | int | str],
+    dashboard_snapshot: dict[str, float | int | str],
+    current_focus_label: str,
+) -> None:
+    st.subheader(t("strategy_dashboard_title"))
+    top_row = st.columns(2)
+    with top_row[0]:
+        render_metric_card(
+            t("current_net_income"),
+            format_currency(float(dashboard_snapshot["current_net_income"])),
+            str(dashboard_snapshot["status"]),
+        )
+    with top_row[1]:
+        render_metric_card(
+            t("target_income_metric"),
+            format_currency(float(dashboard_snapshot["target_income"])),
+            t("dashboard_focus_chip") + f": {current_focus_label}",
+        )
+
+    mid_row = st.columns(2)
+    with mid_row[0]:
+        render_metric_card(
+            t("gap_to_target"),
+            format_currency(float(dashboard_snapshot["gap_value"])),
+            t("money_gap_body"),
+        )
+    with mid_row[1]:
+        render_metric_card(
+            t("strategy_score"),
+            f"{int(dashboard_snapshot['score'])}/100",
+            str(dashboard_snapshot["status"]),
+        )
+
+    bottom_row = st.columns(2)
+    follower_count = max(int(st.session_state.get("follower_count", 0)), 1)
+    arppu = float(financials["gross_income"]) / follower_count if follower_count > 0 else 0.0
+    margin = (
+        (float(financials["net_income"]) / float(financials["gross_income"])) * 100
+        if float(financials["gross_income"]) > 0
+        else 0.0
+    )
+    with bottom_row[0]:
+        render_metric_card(
+            t("dashboard_card_arppu"),
+            format_currency(arppu),
+            t("revenue_per_fan"),
+        )
+    with bottom_row[1]:
+        render_metric_card(
+            t("dashboard_card_margin"),
+            f"{margin:.0f}%",
+            t("net_income"),
+        )
+
+    render_note_card(t("dashboard_chart_title"), str(dashboard_snapshot["explanation"]))
+
+
 def render_vip_area(financials: dict[str, float | int | str]) -> None:
     if is_upgrade_flow():
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
@@ -4423,12 +4546,7 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
     if strategy_result:
         dashboard_snapshot = build_dashboard_snapshot(financials, current_profile, strategy_result)
         current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
-    render_vip_workspace(dashboard_snapshot, financials, current_focus_label)
-    render_strategy_dashboard(dashboard_snapshot)
-    if strategy_result:
-        render_structured_strategy(strategy_result)
-    else:
-        render_note_card(t("strategy_consultant"), t("strategy_generate_hint"))
+    selected_section = render_vip_sidebar(current_focus_label)
 
     tracking_target = (
         float(strategy_result["target_income"])
@@ -4445,63 +4563,100 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
         if isinstance(strategy_result, dict)
         else determine_growth_focus(financials, current_profile)
     )
-    tracking_stats = render_tracking_system(
-        tracking_target,
-        tracking_score,
-        tracking_focus,
-    )
-    render_strategy_history(strategy_result if isinstance(strategy_result, dict) else None)
 
-    st.divider()
-    st.subheader(t("vip_guide_title"))
-    st.caption(t("vip_guide_desc"))
-    st.download_button(
-        t("download_guide"),
-        data=build_anonymous_creator_bible(),
-        file_name="the_girlpire_creator_bible.md",
-        mime="text/markdown",
-        use_container_width=True,
-    )
-    if isinstance(strategy_result, dict):
-        render_strategy_export(financials, strategy_result, tracking_stats)
+    if selected_section == "dashboard":
+        render_vip_dashboard_overview(financials, dashboard_snapshot, current_focus_label)
+        if strategy_result:
+            render_structured_strategy(strategy_result)
+        else:
+            render_note_card(t("strategy_consultant"), t("strategy_generate_hint"))
 
-    st.divider()
-    st.subheader(t("advanced_metrics"))
-    score_value = 0
-    score_status = t("status_average")
-    if isinstance(strategy_result, dict):
-        score_value = int(strategy_result.get("score", 0))
-        score_status = str(strategy_result.get("status", score_status))
-    else:
-        score_value = int(dashboard_snapshot["score"])
-        score_status = str(dashboard_snapshot["status"])
+    elif selected_section == "calculator":
+        st.subheader(t("vip_nav_calculator"))
+        metric_row = st.columns(2)
+        with metric_row[0]:
+            render_metric_card(t("gross_income"), format_currency(float(financials["gross_income"])))
+        with metric_row[1]:
+            render_metric_card(t("net_income"), format_currency(float(financials["net_income"])))
+        metric_row_2 = st.columns(2)
+        with metric_row_2[0]:
+            render_metric_card(t("platform_fee"), format_currency(float(financials["platform_fee"])))
+        with metric_row_2[1]:
+            render_metric_card(t("yearly_net_income"), format_currency(float(financials["yearly_net_income"])))
 
-    advanced_row = st.columns(2)
-    with advanced_row[0]:
-        render_metric_card(
-            t("strategy_score"),
-            f"{score_value}/100",
-            score_status,
+    elif selected_section == "strategy":
+        render_strategy_dashboard(dashboard_snapshot)
+        if strategy_result:
+            render_structured_strategy(strategy_result)
+        else:
+            render_note_card(t("strategy_consultant"), t("strategy_generate_hint"))
+        render_strategy_history(strategy_result if isinstance(strategy_result, dict) else None)
+
+    elif selected_section == "tracking":
+        render_tracking_system(
+            tracking_target,
+            tracking_score,
+            tracking_focus,
         )
-    with advanced_row[1]:
-        render_metric_card(
-            t("profit_breakdown"),
-            format_currency(float(financials["net_income"])),
-            f"{t('gross_income')}: {format_currency(float(financials['gross_income']))}",
-        )
+        render_strategy_history(strategy_result if isinstance(strategy_result, dict) else None)
 
-    scenario_columns = st.columns(3)
-    scenarios = build_scenarios(
-        int(st.session_state.get("follower_count", 0)),
-        float(st.session_state.get("monthly_sub_price", 0.0)),
-        float(st.session_state.get("expected_tips_ppv", 0.0)),
-    )
-    for index, (scenario_name, scenario_financials) in enumerate(scenarios.items()):
-        with scenario_columns[index]:
+    elif selected_section == "scenarios":
+        st.subheader(t("vip_nav_scenarios"))
+        scenario_columns = st.columns(3)
+        scenarios = build_scenarios(
+            int(st.session_state.get("follower_count", 0)),
+            float(st.session_state.get("monthly_sub_price", 0.0)),
+            float(st.session_state.get("expected_tips_ppv", 0.0)),
+        )
+        for index, (scenario_name, scenario_financials) in enumerate(scenarios.items()):
+            with scenario_columns[index]:
+                render_metric_card(
+                    scenario_name,
+                    format_currency(scenario_financials["net_income"]),
+                    f"{t('gross_income')}: {format_currency(scenario_financials['gross_income'])}",
+                )
+
+    elif selected_section == "guide":
+        st.subheader(t("vip_guide_title"))
+        st.caption(t("vip_guide_desc"))
+        st.download_button(
+            t("download_guide"),
+            data=build_anonymous_creator_bible(),
+            file_name="the_girlpire_creator_bible.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+        if isinstance(strategy_result, dict):
+            tracking_stats = render_tracking_system(
+                tracking_target,
+                tracking_score,
+                tracking_focus,
+            )
+            render_strategy_export(financials, strategy_result, tracking_stats)
+
+    elif selected_section == "advanced":
+        st.subheader(t("advanced_metrics"))
+        score_value = 0
+        score_status = t("status_average")
+        if isinstance(strategy_result, dict):
+            score_value = int(strategy_result.get("score", 0))
+            score_status = str(strategy_result.get("status", score_status))
+        else:
+            score_value = int(dashboard_snapshot["score"])
+            score_status = str(dashboard_snapshot["status"])
+
+        advanced_row = st.columns(2)
+        with advanced_row[0]:
             render_metric_card(
-                scenario_name,
-                format_currency(scenario_financials["net_income"]),
-                f"{t('gross_income')}: {format_currency(scenario_financials['gross_income'])}",
+                t("strategy_score"),
+                f"{score_value}/100",
+                score_status,
+            )
+        with advanced_row[1]:
+            render_metric_card(
+                t("profit_breakdown"),
+                format_currency(float(financials["net_income"])),
+                f"{t('gross_income')}: {format_currency(float(financials['gross_income']))}",
             )
 
 
