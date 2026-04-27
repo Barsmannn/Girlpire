@@ -56,10 +56,20 @@ TRANSLATIONS = {
         "hero_title": "Calculate Your Global Potential",
         "hero_subtitle": "Business-focused creator growth platform",
         "dashboard_workspace": "VIP Workspace",
+        "dashboard_top_title": "Financial Dashboard",
         "dashboard_welcome": "Welcome back, {name}",
         "dashboard_workspace_body": "A premium revenue command center for creators and agencies focused on pricing, retention and scalable monthly growth.",
         "dashboard_focus_chip": "Focus of the month",
         "dashboard_sync_chip": "Live revenue view",
+        "dashboard_search_placeholder": "Tap here to search",
+        "dashboard_nav_dashboard": "Dashboard",
+        "dashboard_nav_documents": "Documents",
+        "dashboard_nav_payments": "Payments",
+        "dashboard_nav_calendar": "Calendar",
+        "dashboard_nav_profile": "Profile",
+        "dashboard_nav_darkmode": "Darkmode",
+        "dashboard_nav_settings": "Settings",
+        "dashboard_nav_logout": "Logout",
         "dashboard_nav_strategy": "Strategy Engine",
         "dashboard_nav_tracking": "Progress Tracking",
         "dashboard_nav_assets": "VIP Assets",
@@ -369,10 +379,20 @@ TRANSLATIONS = {
         "hero_title": "Global Potansiyelinizi Hesaplayin",
         "hero_subtitle": "Is odakli uretici buyume platformu",
         "dashboard_workspace": "VIP Calisma Alani",
+        "dashboard_top_title": "Finans Paneli",
         "dashboard_welcome": "Tekrar hos geldin, {name}",
         "dashboard_workspace_body": "Fiyatlama, retention ve olceklenebilir aylik buyumeye odaklanan ureticiler ve ajanslar icin premium gelir kontrol merkezi.",
         "dashboard_focus_chip": "Ayin odagi",
         "dashboard_sync_chip": "Canli gelir gorunumu",
+        "dashboard_search_placeholder": "Aramak icin buraya dokun",
+        "dashboard_nav_dashboard": "Dashboard",
+        "dashboard_nav_documents": "Documents",
+        "dashboard_nav_payments": "Payments",
+        "dashboard_nav_calendar": "Calendar",
+        "dashboard_nav_profile": "Profile",
+        "dashboard_nav_darkmode": "Darkmode",
+        "dashboard_nav_settings": "Settings",
+        "dashboard_nav_logout": "Logout",
         "dashboard_nav_strategy": "Strateji Motoru",
         "dashboard_nav_tracking": "Ilerleme Takibi",
         "dashboard_nav_assets": "VIP Varliklari",
@@ -1636,6 +1656,51 @@ def render_styles() -> None:
             min-height: 100%;
         }
 
+        .wolf-dashboard-sidebar-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .wolf-dashboard-sidebar-avatar,
+        .wolf-dashboard-sidebar-avatar-img {
+            width: 52px;
+            height: 52px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .wolf-dashboard-sidebar-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(159, 122, 234, 0.26), rgba(244, 114, 182, 0.22));
+            color: var(--wolf-text);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-sidebar-avatar-img {
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .wolf-dashboard-sidebar-name {
+            color: var(--wolf-text);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .wolf-dashboard-sidebar-role {
+            color: var(--wolf-muted);
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+        }
+
         .wolf-dashboard-profile {
             padding: 1rem;
             min-height: 100%;
@@ -1661,6 +1726,28 @@ def render_styles() -> None:
             background: rgba(255, 255, 255, 0.02);
             color: var(--wolf-text);
             font-weight: 600;
+        }
+
+        .wolf-dashboard-nav-item.is-active {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .wolf-dashboard-nav-item.is-utility {
+            color: var(--wolf-muted);
+            background: transparent;
+        }
+
+        .wolf-dashboard-nav-group {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .wolf-dashboard-nav-divider {
+            height: 1px;
+            margin: 0.95rem 0;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent);
         }
 
         .wolf-dashboard-nav-dot {
@@ -3820,31 +3907,51 @@ def render_vip_workspace(
         """
         for label, value, note, variant, progress in kpis
     )
-    nav_labels = [
-        t("dashboard_nav_strategy"),
-        t("dashboard_nav_tracking"),
-        t("dashboard_nav_assets"),
-        t("dashboard_nav_membership"),
+    primary_nav_labels = [
+        t("dashboard_nav_dashboard"),
+        t("dashboard_nav_documents"),
+        t("dashboard_nav_payments"),
+        t("dashboard_nav_calendar"),
+        t("dashboard_nav_profile"),
+    ]
+    utility_nav_labels = [
+        t("dashboard_nav_darkmode"),
+        t("dashboard_nav_settings"),
+        t("dashboard_nav_logout"),
     ]
     nav_items = "".join(
         f"""
-        <div class="wolf-dashboard-nav-item">
+        <div class="wolf-dashboard-nav-item {'is-active' if index == 0 else ''}">
             <span class="wolf-dashboard-nav-dot"></span>
             <span>{html.escape(label)}</span>
         </div>
         """
-        for label in nav_labels
+        for index, label in enumerate(primary_nav_labels)
+    )
+    utility_items = "".join(
+        f"""
+        <div class="wolf-dashboard-nav-item is-utility">
+            <span class="wolf-dashboard-nav-dot"></span>
+            <span>{html.escape(label)}</span>
+        </div>
+        """
+        for label in utility_nav_labels
     )
     profile_avatar = (
         f'<img class="wolf-dashboard-profile-avatar-img" src="{html.escape(user_picture, quote=True)}" alt="{html.escape(user_name)}" />'
         if user_picture
         else f'<div class="wolf-dashboard-profile-avatar">{html.escape(initials)}</div>'
     )
+    sidebar_avatar = (
+        f'<img class="wolf-dashboard-sidebar-avatar-img" src="{html.escape(user_picture, quote=True)}" alt="{html.escape(user_name)}" />'
+        if user_picture
+        else f'<div class="wolf-dashboard-sidebar-avatar">{html.escape(initials)}</div>'
+    )
     st.markdown(
         f"""
         <div class="wolf-dashboard-frame">
             <div class="wolf-dashboard-topbar">
-                <div class="wolf-dashboard-topbar-title">{html.escape(t("vip_title"))}</div>
+                <div class="wolf-dashboard-topbar-title">{html.escape(t("dashboard_top_title"))}</div>
                 <div class="wolf-dashboard-topbar-meta">
                     <span>{html.escape(t("dashboard_workspace"))}</span>
                     <span>{html.escape(current_month)}</span>
@@ -3860,10 +3967,19 @@ def render_vip_workspace(
         st.markdown(
             f"""
             <div class="wolf-dashboard-side">
-                <div class="wolf-inline-title">{html.escape(t("dashboard_workspace"))}</div>
-                <p class="wolf-muted">{html.escape(t("dashboard_workspace_body"))}</p>
-                <div class="wolf-dashboard-nav">
+                <div class="wolf-dashboard-sidebar-profile">
+                    {sidebar_avatar}
+                    <div>
+                        <div class="wolf-dashboard-sidebar-name">{html.escape(user_name)}</div>
+                        <div class="wolf-dashboard-sidebar-role">{html.escape(t("vip_title"))}</div>
+                    </div>
+                </div>
+                <div class="wolf-dashboard-nav-group">
                     {nav_items}
+                </div>
+                <div class="wolf-dashboard-nav-divider"></div>
+                <div class="wolf-dashboard-nav-group">
+                    {utility_items}
                 </div>
                 <div class="wolf-dashboard-side-promo">
                     <div class="wolf-dashboard-side-promo-title">{html.escape(t("dashboard_focus_chip"))}</div>
@@ -3889,9 +4005,9 @@ def render_vip_workspace(
             unsafe_allow_html=True,
         )
         st.markdown(
-            """
+            f"""
             <div class="wolf-dashboard-searchbar">
-                <div class="wolf-dashboard-searchbar-copy">Search insights, pricing ideas or monthly targets</div>
+                <div class="wolf-dashboard-searchbar-copy">{html.escape(t("dashboard_search_placeholder"))}</div>
                 <div class="wolf-dashboard-search-actions">
                     <div class="wolf-dashboard-search-action">&#9906;</div>
                     <div class="wolf-dashboard-search-action">&#10022;</div>
