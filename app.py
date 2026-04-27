@@ -1762,6 +1762,30 @@ def get_nowpayments_preferred_pay_currency() -> str:
     return "usdttrc20"
 
 
+def get_vip_price_usd() -> float:
+    candidate_values = (
+        secret_get("pricing", "vip_price_usd", default=""),
+        secret_get("VIP_PRICE_USD", default=""),
+        os.environ.get("VIP_PRICE_USD", ""),
+        19.99,
+    )
+    for value in candidate_values:
+        try:
+            parsed = float(str(value).strip())
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0:
+            return round(parsed, 2)
+    return 19.99
+
+
+def get_vip_price_label() -> str:
+    price_value = get_vip_price_usd()
+    if get_language() == "tr":
+        return f"${price_value:,.2f}/ay"
+    return f"${price_value:,.2f}/month"
+
+
 def get_webhook_base_url() -> str:
     return str(
         secret_get(
@@ -1829,7 +1853,7 @@ def create_crypto_payment(email: str) -> str:
     url = "https://api.nowpayments.io/v1/invoice"
     headers = {"x-api-key": api_key}
     base_payload = {
-        "price_amount": 19.99,
+        "price_amount": get_vip_price_usd(),
         "price_currency": "usd",
         "order_id": email,
         "order_description": "Girlpire VIP",
@@ -2487,7 +2511,7 @@ def render_paywall(email: str) -> None:
     st.caption(t("paywall_desc"))
     render_metric_card(
         t("pricing_anchor_title"),
-        t("pricing_anchor_price"),
+        get_vip_price_label(),
         t("pricing_anchor_note"),
     )
 
