@@ -31,6 +31,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 APP_DIR = Path(__file__).resolve().parent
 EMAILS_FILE = APP_DIR / "emails.json"
+GUIDE_PDF_PATH = APP_DIR / "assets" / "The_1__Creator_Blueprint.pdf"
 load_dotenv(dotenv_path=APP_DIR / ".env", override=False)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 APP_TITLE = "Girlpire - OnlyFans Success Portal"
@@ -371,6 +372,10 @@ TRANSLATIONS = {
         "vip_guide_title": "The Girlpire Creator Bible",
         "vip_guide_desc": "Download the private business guide for positioning, pricing, monetization, and weekly tracking.",
         "download_guide": "Download Guide",
+        "download_guide_pdf": "Download VIP PDF Guide",
+        "guide_locked_title": "Guide Access Locked",
+        "guide_locked_body": "Buy Girlpire VIP to access and download this private PDF guide.",
+        "guide_missing_file": "The VIP PDF guide is not available yet.",
         "advanced_metrics": "Advanced Metrics",
         "profit_breakdown": "Profit Breakdown",
         "scenario_analysis": "Scenario Analysis",
@@ -703,6 +708,10 @@ TRANSLATIONS = {
         "vip_guide_title": "The Girlpire Creator Bible",
         "vip_guide_desc": "Konumlama, fiyatlama, gelir artirma ve haftalik takip icin ozel is rehberini indirin.",
         "download_guide": "Rehberi Indir",
+        "download_guide_pdf": "VIP PDF Rehberini Indir",
+        "guide_locked_title": "Rehber Erisimi Kilitli",
+        "guide_locked_body": "Bu ozel PDF rehbere erismek ve indirmek icin Girlpire VIP satin alin.",
+        "guide_missing_file": "VIP PDF rehberi henuz kullanilabilir degil.",
         "advanced_metrics": "Gelismis Metrikler",
         "profit_breakdown": "Kar Dagilimi",
         "scenario_analysis": "Senaryo Analizi",
@@ -3568,6 +3577,13 @@ def build_strategy_report(
     ).strip()
 
 
+@st.cache_data(show_spinner=False)
+def load_guide_pdf_bytes() -> bytes:
+    if not GUIDE_PDF_PATH.exists():
+        return b""
+    return GUIDE_PDF_PATH.read_bytes()
+
+
 def build_scenarios(
     follower_count: int, monthly_sub_price: float, expected_tips_ppv: float
 ) -> dict[str, dict[str, float]]:
@@ -5547,6 +5563,38 @@ def render_vip_calculator_section() -> dict[str, float | int | str] | None:
     return result
 
 
+def render_vip_guide_section(is_vip: bool, financials: dict[str, float | int | str], strategy_result: dict[str, object] | None) -> None:
+    st.subheader(t("vip_guide_title"))
+    st.caption(t("vip_guide_desc"))
+
+    if not is_vip:
+        render_note_card(t("guide_locked_title"), t("guide_locked_body"))
+        return
+
+    pdf_bytes = load_guide_pdf_bytes()
+    if pdf_bytes:
+        st.download_button(
+            t("download_guide_pdf"),
+            data=pdf_bytes,
+            file_name="The_1__Creator_Blueprint.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+        )
+    else:
+        st.warning(t("guide_missing_file"))
+
+    if isinstance(strategy_result, dict):
+        tracking_stats = {
+            "revenue_growth": 0.0,
+            "growth_percent": 0.0,
+            "progress_percent": 0.0,
+            "current_subscribers": float(st.session_state.get("tracking_current_subscribers", 0)),
+            "current_revenue": float(st.session_state.get("tracking_current_revenue", 0.0)),
+            "new_subscribers": float(st.session_state.get("tracking_subscriber_change", 0)),
+        }
+        render_strategy_export(financials, strategy_result, tracking_stats)
+
+
 def render_vip_area(financials: dict[str, float | int | str]) -> None:
     if is_upgrade_flow():
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
@@ -5736,25 +5784,11 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
                     )
 
         elif selected_section == "guide":
-            st.subheader(t("vip_guide_title"))
-            st.caption(t("vip_guide_desc"))
-            st.download_button(
-                t("download_guide"),
-                data=build_anonymous_creator_bible(),
-                file_name="the_girlpire_creator_bible.md",
-                mime="text/markdown",
-                use_container_width=True,
+            render_vip_guide_section(
+                bool(st.session_state.get("premium_unlocked", False)),
+                financials,
+                strategy_result if isinstance(strategy_result, dict) else None,
             )
-            if isinstance(strategy_result, dict):
-                tracking_stats = {
-                    "revenue_growth": 0.0,
-                    "growth_percent": 0.0,
-                    "progress_percent": 0.0,
-                    "current_subscribers": float(st.session_state.get("tracking_current_subscribers", 0)),
-                    "current_revenue": float(st.session_state.get("tracking_current_revenue", 0.0)),
-                    "new_subscribers": float(st.session_state.get("tracking_subscriber_change", 0)),
-                }
-                render_strategy_export(financials, strategy_result, tracking_stats)
 
         elif selected_section == "advanced":
             st.subheader(t("advanced_metrics"))
@@ -5938,6 +5972,9 @@ def main() -> None:
             render_cta_section(financials)
         st.warning(t("vip_upgrade_message"))
         render_paywall(current_email)
+        requested_section = str(getattr(st, "query_params", {}).get("vip_section", "") or "").strip().lower()
+        if requested_section == "guide":
+            render_note_card(t("guide_locked_title"), t("guide_locked_body"))
 
     render_footer()
 
