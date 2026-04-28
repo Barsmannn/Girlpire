@@ -293,6 +293,7 @@ TRANSLATIONS = {
         "quick_strategy_content_low": "You are posting too little. Increase content frequency.",
         "quick_strategy_content_high": "You are posting too much. Focus on quality instead of quantity.",
         "quick_strategy_content_ok": "Your posting frequency is in a healthy range.",
+        "quick_strategy_locked": "Unlock full strategy to see more",
         "groq_fallback_missing": "Groq is not configured. Showing the built-in rule-based strategy consultant instead.",
         "groq_fallback_failed": "Groq could not respond right now. Showing the built-in rule-based strategy consultant instead.",
         "immediate_fix_title": "Immediate Fix (Next 7 Days)",
@@ -649,6 +650,7 @@ TRANSLATIONS = {
         "quick_strategy_content_low": "Cok az paylasim yapiyorsunuz. Icerik frekansini artirin.",
         "quick_strategy_content_high": "Cok fazla paylasim yapiyorsunuz. Nicelik yerine kaliteye odaklanin.",
         "quick_strategy_content_ok": "Paylasim frekansiniz saglikli aralikta.",
+        "quick_strategy_locked": "Daha fazlasini gormek icin tam stratejinin kilidini acin",
         "groq_fallback_missing": "Groq yapilandirilmamis. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "groq_fallback_failed": "Groq su anda yanit veremedi. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "immediate_fix_title": "Anlik Duzeltme (Sonraki 7 Gun)",
@@ -3572,7 +3574,7 @@ def generate_quick_strategy(
     return strategies
 
 
-def render_quick_strategy_engine() -> None:
+def render_quick_strategy_engine(is_paid: bool) -> None:
     st.divider()
     st.markdown(f"### {t('quick_strategy_title')}")
     st.caption(t("quick_strategy_desc"))
@@ -3622,7 +3624,13 @@ def render_quick_strategy_engine() -> None:
 
     quick_result = st.session_state.get("quick_strategy_result")
     if isinstance(quick_result, list) and quick_result:
-        render_list_card(t("strategy_report_title"), [str(item) for item in quick_result])
+        st.markdown(f"## {t('strategy_report_title')}")
+        st.write("• " + str(quick_result[0]))
+        if not is_paid:
+            st.markdown(f"🔒 {t('quick_strategy_locked')}")
+        else:
+            for item in quick_result[1:]:
+                st.write("• " + str(item))
 
 
 def build_anonymous_creator_bible() -> str:
@@ -5840,7 +5848,7 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
                 current_focus_label = str(strategy_result.get("focus_of_month", current_focus_label))
                 st.rerun()
 
-            render_quick_strategy_engine()
+            render_quick_strategy_engine(True)
 
             strategy_result = st.session_state.get("strategy_result")
             if strategy_result:
@@ -6093,6 +6101,7 @@ def main() -> None:
             current_email,
         )
         financials = render_free_calculator()
+        render_quick_strategy_engine(False)
         if financials:
             render_cta_section(financials)
         st.warning(t("vip_upgrade_message"))
