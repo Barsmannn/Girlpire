@@ -5996,6 +5996,8 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
     section_options = get_vip_section_options()
     user_name = get_current_user_name() or "Girlpire Member"
     user_email = get_current_user_email() or ""
+    checkout_url = build_checkout_url(user_email)
+    crypto_state_key = f"sidebar_crypto_payment_url::{user_email.strip().lower()}"
     user_picture = get_user_claim("picture", "")
     initials = "".join(part[:1] for part in user_name.split()[:2]).upper() or "GP"
     avatar_html = (
@@ -6026,6 +6028,30 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
             st.rerun()
 
     st.button(t("logout"), key="vip_nav_logout", use_container_width=True, on_click=st.logout)
+
+    st.divider()
+    if checkout_url:
+        st.link_button(t("pay_with_card"), checkout_url, use_container_width=True)
+    else:
+        st.button(t("pay_with_card"), disabled=True, use_container_width=True, key="vip_nav_card_disabled")
+
+    if st.button(t("pay_with_crypto"), key="vip_nav_crypto", use_container_width=True):
+        payment_url = create_crypto_payment(user_email)
+        if payment_url:
+            st.session_state[crypto_state_key] = payment_url
+            st.success(t("crypto_payment_ready"))
+        elif not get_nowpayments_api_key():
+            st.warning(t("crypto_payment_unavailable"))
+        else:
+            st.error(t("crypto_payment_failed"))
+
+    saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
+    if saved_crypto_url:
+        st.link_button(
+            t("open_crypto_payment"),
+            saved_crypto_url,
+            use_container_width=True,
+        )
 
 
 def render_vip_calculator_section() -> dict[str, float | int | str] | None:
