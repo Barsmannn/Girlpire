@@ -31,7 +31,8 @@ except Exception:  # pragma: no cover - optional dependency
 
 APP_DIR = Path(__file__).resolve().parent
 EMAILS_FILE = APP_DIR / "emails.json"
-GUIDE_PDF_PATH = APP_DIR / "assets" / "The_1__Creator_Blueprint.pdf"
+GUIDE_PDF_PART_1_PATH = APP_DIR / "assets" / "OnlyFans Beginner's Guide - Part 1.pdf"
+GUIDE_PDF_PART_2_PATH = APP_DIR / "assets" / "OnlyFans Beginner's Guide - Part 2.pdf"
 load_dotenv(dotenv_path=APP_DIR / ".env", override=False)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 APP_TITLE = "Girlpire - OnlyFans Success Portal"
@@ -451,9 +452,16 @@ TRANSLATIONS = {
         "vip_guide_desc": "Download the private business guide for positioning, pricing, monetization, and weekly tracking.",
         "download_guide": "Download Guide",
         "download_guide_pdf": "Download VIP PDF Guide",
+        "download_guide_pdf_part_1": "Download Part 1 Guide",
+        "download_guide_pdf_part_2": "Download Part 2 Guide",
+        "guide_library_title": "VIP Guide Library",
+        "guide_part_1_title": "OnlyFans Beginner's Guide - Part 1",
+        "guide_part_2_title": "OnlyFans Beginner's Guide - Part 2",
         "guide_locked_title": "Guide Access Locked",
         "guide_locked_body": "Buy Girlpire VIP to access and download this private PDF guide.",
         "guide_missing_file": "The VIP PDF guide is not available yet.",
+        "guide_part_1_missing_file": "Part 1 is not available yet.",
+        "guide_part_2_missing_file": "Part 2 is not available yet.",
         "advanced_metrics": "Advanced Metrics",
         "profit_breakdown": "Profit Breakdown",
         "scenario_analysis": "Scenario Analysis",
@@ -865,9 +873,16 @@ TRANSLATIONS = {
         "vip_guide_desc": "Konumlama, fiyatlama, gelir artirma ve haftalik takip icin ozel is rehberini indirin.",
         "download_guide": "Rehberi Indir",
         "download_guide_pdf": "VIP PDF Rehberini Indir",
+        "download_guide_pdf_part_1": "1. Bolum Rehberini Indir",
+        "download_guide_pdf_part_2": "2. Bolum Rehberini Indir",
+        "guide_library_title": "VIP Rehber Kutuphanesi",
+        "guide_part_1_title": "OnlyFans Beginner's Guide - Part 1",
+        "guide_part_2_title": "OnlyFans Beginner's Guide - Part 2",
         "guide_locked_title": "Rehber Erisimi Kilitli",
         "guide_locked_body": "Bu ozel PDF rehbere erismek ve indirmek icin Girlpire VIP satin alin.",
         "guide_missing_file": "VIP PDF rehberi henuz kullanilabilir degil.",
+        "guide_part_1_missing_file": "1. bolum henuz kullanilabilir degil.",
+        "guide_part_2_missing_file": "2. bolum henuz kullanilabilir degil.",
         "advanced_metrics": "Gelismis Metrikler",
         "profit_breakdown": "Kar Dagilimi",
         "scenario_analysis": "Senaryo Analizi",
@@ -3992,10 +4007,11 @@ def build_strategy_report(
 
 
 @st.cache_data(show_spinner=False)
-def load_guide_pdf_bytes() -> bytes:
-    if not GUIDE_PDF_PATH.exists():
+def load_pdf_bytes(path: str) -> bytes:
+    file_path = Path(path)
+    if not file_path.exists():
         return b""
-    return GUIDE_PDF_PATH.read_bytes()
+    return file_path.read_bytes()
 
 
 def build_scenarios(
@@ -5990,17 +6006,38 @@ def render_vip_guide_section(is_vip: bool, financials: dict[str, float | int | s
         render_note_card(t("guide_locked_title"), t("guide_locked_body"))
         return
 
-    pdf_bytes = load_guide_pdf_bytes()
-    if pdf_bytes:
-        st.download_button(
-            t("download_guide_pdf"),
-            data=pdf_bytes,
-            file_name="The_1__Creator_Blueprint.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-        )
-    else:
-        st.warning(t("guide_missing_file"))
+    st.markdown(f"### {t('guide_library_title')}")
+    part_1_bytes = load_pdf_bytes(str(GUIDE_PDF_PART_1_PATH))
+    part_2_bytes = load_pdf_bytes(str(GUIDE_PDF_PART_2_PATH))
+
+    part_columns = st.columns(2)
+    with part_columns[0]:
+        st.markdown(f"**{t('guide_part_1_title')}**")
+        if part_1_bytes:
+            st.download_button(
+                t("download_guide_pdf_part_1"),
+                data=part_1_bytes,
+                file_name="OnlyFans Beginner's Guide - Part 1.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="download_guide_part_1",
+            )
+        else:
+            st.warning(t("guide_part_1_missing_file"))
+
+    with part_columns[1]:
+        st.markdown(f"**{t('guide_part_2_title')}**")
+        if part_2_bytes:
+            st.download_button(
+                t("download_guide_pdf_part_2"),
+                data=part_2_bytes,
+                file_name="OnlyFans Beginner's Guide - Part 2.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="download_guide_part_2",
+            )
+        else:
+            st.warning(t("guide_part_2_missing_file"))
 
     if isinstance(strategy_result, dict):
         tracking_stats = {
