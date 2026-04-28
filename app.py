@@ -293,7 +293,24 @@ TRANSLATIONS = {
         "quick_strategy_content_low": "You are posting too little. Increase content frequency.",
         "quick_strategy_content_high": "You are posting too much. Focus on quality instead of quantity.",
         "quick_strategy_content_ok": "Your posting frequency is in a healthy range.",
-        "quick_strategy_locked": "Unlock full strategy to see more",
+        "creator_score_title": "Creator Score",
+        "creator_score_underperforming": "Your account is underperforming",
+        "creator_score_untapped": "You have untapped potential",
+        "creator_score_strong": "Strong account, ready to scale",
+        "quick_strategy_loss_title": "You are losing approx {amount}/month",
+        "quick_strategy_potential_title": "Potential Growth",
+        "quick_strategy_current_label": "Current",
+        "quick_strategy_optimized_label": "Optimized",
+        "quick_strategy_current": "Current: {amount}/month",
+        "quick_strategy_optimized": "Optimized: {amount}/month",
+        "quick_strategy_locked": "Unlock full strategy to improve conversion, monetization, and retention",
+        "quick_strategy_vip_includes": "VIP includes:",
+        "quick_strategy_vip_item_1": "Full monetization plan",
+        "quick_strategy_vip_item_2": "DM scripts",
+        "quick_strategy_vip_item_3": "Content strategy",
+        "quick_strategy_vip_item_4": "Scaling system",
+        "quick_strategy_urgency": "Free strategy previews are limited so VIP members can get the full planning workflow.",
+        "quick_strategy_social_proof": "Built for creators who want to diagnose pricing, content, and monetization issues before spending on traffic.",
         "groq_fallback_missing": "Groq is not configured. Showing the built-in rule-based strategy consultant instead.",
         "groq_fallback_failed": "Groq could not respond right now. Showing the built-in rule-based strategy consultant instead.",
         "immediate_fix_title": "Immediate Fix (Next 7 Days)",
@@ -650,7 +667,24 @@ TRANSLATIONS = {
         "quick_strategy_content_low": "Cok az paylasim yapiyorsunuz. Icerik frekansini artirin.",
         "quick_strategy_content_high": "Cok fazla paylasim yapiyorsunuz. Nicelik yerine kaliteye odaklanin.",
         "quick_strategy_content_ok": "Paylasim frekansiniz saglikli aralikta.",
-        "quick_strategy_locked": "Daha fazlasini gormek icin tam stratejinin kilidini acin",
+        "creator_score_title": "Creator Score",
+        "creator_score_underperforming": "Hesabiniz beklenen performansin altinda",
+        "creator_score_untapped": "Henuz kullanilmayan buyume potansiyeliniz var",
+        "creator_score_strong": "Hesap guclu, olceklendirmeye hazir",
+        "quick_strategy_loss_title": "Yaklasik {amount}/ay kaciriyorsunuz",
+        "quick_strategy_potential_title": "Potansiyel Buyume",
+        "quick_strategy_current_label": "Mevcut",
+        "quick_strategy_optimized_label": "Optimize Edilmis",
+        "quick_strategy_current": "Mevcut: {amount}/ay",
+        "quick_strategy_optimized": "Optimize Edilmis: {amount}/ay",
+        "quick_strategy_locked": "Donusum, monetizasyon ve retention'i guclendirmek icin tam stratejinin kilidini acin",
+        "quick_strategy_vip_includes": "VIP icinde sunlar var:",
+        "quick_strategy_vip_item_1": "Tam monetizasyon plani",
+        "quick_strategy_vip_item_2": "DM scriptleri",
+        "quick_strategy_vip_item_3": "Icerik stratejisi",
+        "quick_strategy_vip_item_4": "Olcekleme sistemi",
+        "quick_strategy_urgency": "VIP uyeler tam planlama akisini alabilsin diye ucretsiz strateji onizlemeleri sinirlidir.",
+        "quick_strategy_social_proof": "Trafik satin almadan once fiyatlama, icerik ve monetizasyon sorunlarini teshis etmek isteyen ureticiler icin tasarlandi.",
         "groq_fallback_missing": "Groq yapilandirilmamis. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "groq_fallback_failed": "Groq su anda yanit veremedi. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "immediate_fix_title": "Anlik Duzeltme (Sonraki 7 Gun)",
@@ -3614,6 +3648,53 @@ def render_quick_strategy_engine(is_paid: bool) -> None:
             key="quick_strategy_posts",
         )
 
+    score = 0
+    if int(followers) > 10000:
+        score += 2
+    if float(engagement) > 3:
+        score += 2
+    if float(price) < 15:
+        score += 1
+    if int(posts_per_week) >= 4:
+        score += 1
+
+    estimated_income = float(followers) * 0.02 * float(price)
+    potential_income = float(followers) * 0.05 * float(price)
+    loss = max(int(potential_income - estimated_income), 0)
+
+    render_metric_card(
+        t("creator_score_title"),
+        f"{score}/6",
+        t("quick_strategy_title"),
+    )
+    if score < 3:
+        st.error(f"🚨 {t('creator_score_underperforming')}")
+    elif score < 5:
+        st.warning(f"⚠ {t('creator_score_untapped')}")
+    else:
+        st.success(f"🔥 {t('creator_score_strong')}")
+
+    render_note_card(
+        t("quick_strategy_loss_title").format(amount=format_currency(float(loss))),
+        t("loss_aversion_copy"),
+    )
+    st.markdown(f"### {t('quick_strategy_potential_title')}")
+    growth_columns = st.columns(2)
+    with growth_columns[0]:
+        render_metric_card(
+            t("quick_strategy_current_label"),
+            format_currency(float(estimated_income)),
+            t("quick_strategy_current").format(amount=format_currency(float(estimated_income))),
+        )
+    with growth_columns[1]:
+        render_metric_card(
+            t("quick_strategy_optimized_label"),
+            format_currency(float(potential_income)),
+            t("quick_strategy_optimized").format(amount=format_currency(float(potential_income))),
+        )
+    st.caption(f"⚠ {t('quick_strategy_urgency')}")
+    st.caption(f"💎 {t('quick_strategy_social_proof')}")
+
     if st.button(t("analyze_my_strategy"), use_container_width=True, key="analyze_my_strategy_button"):
         st.session_state["quick_strategy_result"] = generate_quick_strategy(
             int(followers),
@@ -3628,6 +3709,11 @@ def render_quick_strategy_engine(is_paid: bool) -> None:
         st.write("• " + str(quick_result[0]))
         if not is_paid:
             st.markdown(f"🔒 {t('quick_strategy_locked')}")
+            st.markdown(f"**💎 {t('quick_strategy_vip_includes')}**")
+            st.write("• " + t("quick_strategy_vip_item_1"))
+            st.write("• " + t("quick_strategy_vip_item_2"))
+            st.write("• " + t("quick_strategy_vip_item_3"))
+            st.write("• " + t("quick_strategy_vip_item_4"))
         else:
             for item in quick_result[1:]:
                 st.write("• " + str(item))
