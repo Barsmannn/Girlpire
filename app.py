@@ -322,6 +322,35 @@ TRANSLATIONS = {
         "quick_strategy_urgency": "Free strategy previews are limited so VIP members can get the full planning workflow.",
         "quick_strategy_social_proof": "Built for creators who want to diagnose pricing, content, and monetization issues before spending on traffic.",
         "quick_strategy_psychology_line": "This gap usually comes from pricing, positioning, or weak conversion mechanics.",
+        "mentor_analysis_title": "Strategy Analysis",
+        "mentor_problems_title": "Key Problems",
+        "mentor_opportunities_title": "Opportunities",
+        "mentor_next_title": "What You Should Do Next",
+        "mentor_summary": "Based on your data, you are currently working with **{followers} followers**, **{engagement}% engagement**, a **{price}** subscription, and **{posts} posts per week**.",
+        "mentor_authority_1": "Creators at your level often earn materially more when pricing, conversion, and consistency are optimized.",
+        "mentor_authority_2": "This pattern is common among underperforming accounts that try to scale before tightening the core offer.",
+        "mentor_biggest_mistake_label": "Your biggest mistake is",
+        "mentor_biggest_mistake_low": "weak engagement and low hook strength",
+        "mentor_biggest_mistake_mid": "average engagement without enough conversion pressure",
+        "mentor_biggest_mistake_high": "not monetizing strong audience signals aggressively enough",
+        "mentor_problem_growth_early": "You are currently too early-stage to lean on monetization alone. Your audience still needs stronger top-of-funnel growth.",
+        "mentor_problem_growth_mid": "You have audience potential, but you are underutilizing the attention you already have.",
+        "mentor_problem_growth_high": "You have a monetizable audience. The issue is no longer attention alone, it is execution and monetization depth.",
+        "mentor_problem_engagement_low": "You have {followers} followers but only {engagement}% engagement, which is below optimal. Your content hooks are not pulling enough reaction.",
+        "mentor_problem_engagement_mid": "Your engagement is serviceable, but not strong enough to maximize premium conversion yet.",
+        "mentor_problem_engagement_high": "Your engagement is already strong, which means better monetization is available if the offer gets sharper.",
+        "mentor_problem_price_high": "Your current price is high relative to your audience size, which likely hurts conversion more than you realize.",
+        "mentor_problem_price_low": "Your current price is leaving money on the table. Underpricing can make the offer look weaker, not just cheaper.",
+        "mentor_problem_price_ok": "Pricing is not your biggest issue right now. The bigger opportunity is conversion quality and follow-up structure.",
+        "mentor_problem_posts_low": "Your posting rhythm is too light. The market will not reward inconsistency.",
+        "mentor_problem_posts_high": "You are posting a lot, but the next gain will come from sharper positioning, not simply more volume.",
+        "mentor_problem_posts_ok": "Your content frequency is acceptable. Improvement now comes from tighter monetization mechanics.",
+        "mentor_opportunity_growth": "Based on your data, the biggest upside comes from improving value per follower before chasing more traffic.",
+        "mentor_opportunity_offer": "With a clearer offer and stronger follow-up, your current audience can convert better than it is converting now.",
+        "mentor_opportunity_consistency": "A more consistent weekly content and selling cadence would make your revenue less random and more repeatable.",
+        "mentor_step_1": "Step 1: Fix the main bottleneck first instead of changing everything at once.",
+        "mentor_step_2": "Step 2: Tighten your pricing, hooks, and conversion flow so more of your existing audience moves toward purchase.",
+        "mentor_step_3": "Step 3: Run the same content and monetization rhythm for 2-4 weeks before judging the result.",
         "groq_fallback_missing": "Groq is not configured. Showing the built-in rule-based strategy consultant instead.",
         "groq_fallback_failed": "Groq could not respond right now. Showing the built-in rule-based strategy consultant instead.",
         "immediate_fix_title": "Immediate Fix (Next 7 Days)",
@@ -707,6 +736,35 @@ TRANSLATIONS = {
         "quick_strategy_urgency": "VIP uyeler tam planlama akisini alabilsin diye ucretsiz strateji onizlemeleri sinirlidir.",
         "quick_strategy_social_proof": "Trafik satin almadan once fiyatlama, icerik ve monetizasyon sorunlarini teshis etmek isteyen ureticiler icin tasarlandi.",
         "quick_strategy_psychology_line": "Bu fark genelde fiyatlama, konumlama veya zayif donusum mekaniklerinden gelir.",
+        "mentor_analysis_title": "Strateji Analizi",
+        "mentor_problems_title": "Temel Sorunlar",
+        "mentor_opportunities_title": "Firsatlar",
+        "mentor_next_title": "Sirada Ne Yapmalisiniz",
+        "mentor_summary": "Verilerinize gore su anda **{followers} takipci**, **%{engagement} etkilesim**, **{price}** abonelik fiyati ve haftada **{posts} paylasim** ile ilerliyorsunuz.",
+        "mentor_authority_1": "Sizin seviyenizdeki ureticiler fiyatlama, donusum ve tutarlilik optimize edildiginde genelde belirgin sekilde daha fazla kazanir.",
+        "mentor_authority_2": "Bu desen, temel teklifini guclendirmeden olceklendirmeye calisan dusuk performansli hesaplarda cok yaygindir.",
+        "mentor_biggest_mistake_label": "En buyuk hataniz",
+        "mentor_biggest_mistake_low": "zayif etkilesim ve yetersiz hook gucu",
+        "mentor_biggest_mistake_mid": "yeterli donusum baskisi olmayan ortalama etkilesim",
+        "mentor_biggest_mistake_high": "guclu kitle sinyallerini yeterince agresif monetize etmemek",
+        "mentor_problem_growth_early": "Monetizasyona tek basina yaslanmak icin cok erken asamadasiniz. Kitlenin once daha guclu buyume sinyali gormesi gerekiyor.",
+        "mentor_problem_growth_mid": "Kitlenizde potansiyel var ancak mevcut ilgiyi yeterince iyi kullanmiyorsunuz.",
+        "mentor_problem_growth_high": "Monetize edilebilir bir kitleniz var. Sorun artik sadece dikkat cekmek degil, uygulama ve monetizasyon derinligi.",
+        "mentor_problem_engagement_low": "{followers} takipciniz var ama etkilesiminiz sadece %{engagement}; bu optimumun altinda. Icerik hook'lariniz yeterince reaksiyon cekmiyor.",
+        "mentor_problem_engagement_mid": "Etkilesiminiz fena degil ancak premium donusumu maksimuma cikarmak icin hala yetersiz.",
+        "mentor_problem_engagement_high": "Etkilesiminiz guclu. Bu, teklifinizi keskinlestirdiginizde daha iyi monetizasyon alinabilecegi anlamina gelir.",
+        "mentor_problem_price_high": "Mevcut fiyat seviyeniz kitle buyuklugunuze gore yuksek; bu donusumu fark ettiginizden daha fazla baskiliyor olabilir.",
+        "mentor_problem_price_low": "Mevcut fiyatiniz masada para birakiyor. Dusuk fiyat, sadece daha ucuz degil daha zayif algi da yaratabilir.",
+        "mentor_problem_price_ok": "Su anda en buyuk sorun fiyat degil. Daha buyuk firsat donusum kalitesi ve takip yapisinda.",
+        "mentor_problem_posts_low": "Paylasim ritminiz fazla zayif. Pazar tutarsizligi odullendirmez.",
+        "mentor_problem_posts_high": "Cok paylasim yapiyorsunuz ama bir sonraki buyume adimi daha fazla hacim degil, daha keskin konumlama.",
+        "mentor_problem_posts_ok": "Icerik frekansiniz kabul edilebilir. Buradan sonraki gelisim daha sıkı monetizasyon mekaniklerinden gelir.",
+        "mentor_opportunity_growth": "Verilerinize gore en buyuk firsat, daha fazla trafik kovalamadan once takipci basi degeri artirmakta.",
+        "mentor_opportunity_offer": "Teklif ve takip akisi netlestiginde mevcut kitleniz bugunkunden daha iyi donusebilir.",
+        "mentor_opportunity_consistency": "Daha tutarli haftalik icerik ve satis ritmi geliri daha az rastgele, daha cok tekrar edilebilir hale getirir.",
+        "mentor_step_1": "Adim 1: Her seyi bir anda degistirmek yerine once ana darbogazi duzeltin.",
+        "mentor_step_2": "Adim 2: Mevcut kitlenizin satin alma ihtimalini artirmak icin fiyatlama, hook ve donusum akislarini sikilastirin.",
+        "mentor_step_3": "Adim 3: Sonucu yargilamadan once ayni icerik ve monetizasyon ritmini 2-4 hafta koruyun.",
         "groq_fallback_missing": "Groq yapilandirilmamis. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "groq_fallback_failed": "Groq su anda yanit veremedi. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "immediate_fix_title": "Anlik Duzeltme (Sonraki 7 Gun)",
@@ -3630,6 +3688,78 @@ def generate_quick_strategy(
     return strategies
 
 
+def build_quick_strategy_report(
+    followers: int,
+    engagement: float,
+    price: float,
+    posts_per_week: int,
+) -> dict[str, object]:
+    growth_message: str
+    if followers < 5000:
+        growth_message = t("mentor_problem_growth_early")
+    elif followers < 20000:
+        growth_message = t("mentor_problem_growth_mid")
+    else:
+        growth_message = t("mentor_problem_growth_high")
+
+    if engagement < 2:
+        engagement_message = t("mentor_problem_engagement_low").format(
+            followers=f"{followers:,}",
+            engagement=f"{engagement:.1f}",
+        )
+        biggest_mistake = t("mentor_biggest_mistake_low")
+    elif engagement < 5:
+        engagement_message = t("mentor_problem_engagement_mid")
+        biggest_mistake = t("mentor_biggest_mistake_mid")
+    else:
+        engagement_message = t("mentor_problem_engagement_high")
+        biggest_mistake = t("mentor_biggest_mistake_high")
+
+    if price > 20 and followers < 10000:
+        price_message = t("mentor_problem_price_high")
+    elif price < 8:
+        price_message = t("mentor_problem_price_low")
+    else:
+        price_message = t("mentor_problem_price_ok")
+
+    if posts_per_week < 3:
+        posts_message = t("mentor_problem_posts_low")
+    elif posts_per_week > 10:
+        posts_message = t("mentor_problem_posts_high")
+    else:
+        posts_message = t("mentor_problem_posts_ok")
+
+    return {
+        "summary": t("mentor_summary").format(
+            followers=f"{followers:,}",
+            engagement=f"{engagement:.1f}",
+            price=format_currency(float(price)),
+            posts=posts_per_week,
+        ),
+        "authority": [
+            t("mentor_authority_1"),
+            t("mentor_authority_2"),
+        ],
+        "biggest_mistake": biggest_mistake,
+        "problems": [
+            engagement_message,
+            price_message,
+            posts_message,
+        ],
+        "opportunities": [
+            growth_message,
+            t("mentor_opportunity_growth"),
+            t("mentor_opportunity_offer"),
+            t("mentor_opportunity_consistency"),
+        ],
+        "action_plan": [
+            t("mentor_step_1"),
+            t("mentor_step_2"),
+            t("mentor_step_3"),
+        ],
+    }
+
+
 def render_quick_strategy_engine(is_paid: bool) -> None:
     st.divider()
     st.markdown(f"### {t('quick_strategy_title')}")
@@ -3719,7 +3849,7 @@ def render_quick_strategy_engine(is_paid: bool) -> None:
     st.caption(f"💎 {t('quick_strategy_social_proof')}")
 
     if st.button(t("analyze_my_strategy"), use_container_width=True, key="analyze_my_strategy_button"):
-        st.session_state["quick_strategy_result"] = generate_quick_strategy(
+        st.session_state["quick_strategy_result"] = build_quick_strategy_report(
             int(followers),
             float(engagement),
             float(price),
@@ -3728,8 +3858,35 @@ def render_quick_strategy_engine(is_paid: bool) -> None:
 
     quick_result = st.session_state.get("quick_strategy_result")
     if isinstance(quick_result, list) and quick_result:
-        st.markdown(f"## {t('strategy_report_title')}")
-        st.write("• " + str(quick_result[0]))
+        quick_result = build_quick_strategy_report(
+            int(followers),
+            float(engagement),
+            float(price),
+            int(posts_per_week),
+        )
+        st.session_state["quick_strategy_result"] = quick_result
+
+    if isinstance(quick_result, dict):
+        problems = [str(item) for item in quick_result.get("problems", []) if str(item).strip()]
+        opportunities = [str(item) for item in quick_result.get("opportunities", []) if str(item).strip()]
+        action_plan = [str(item) for item in quick_result.get("action_plan", []) if str(item).strip()]
+
+        st.divider()
+        st.markdown(f"## 🧠 {t('mentor_analysis_title')}")
+        st.markdown(str(quick_result.get("summary", "")))
+        authority_lines = quick_result.get("authority", [])
+        if isinstance(authority_lines, list):
+            for line in authority_lines:
+                st.caption(str(line))
+
+        st.divider()
+        st.markdown(f"## 🚨 {t('mentor_problems_title')}")
+        if problems:
+            st.write("• " + problems[0])
+        st.markdown(
+            f"**{t('mentor_biggest_mistake_label')}:** {str(quick_result.get('biggest_mistake', ''))}"
+        )
+
         if not is_paid:
             st.markdown(f"🔒 {t('quick_strategy_locked')}")
             st.markdown(f"**💎 {t('quick_strategy_vip_includes')}**")
@@ -3738,8 +3895,16 @@ def render_quick_strategy_engine(is_paid: bool) -> None:
             st.write("• " + t("quick_strategy_vip_item_3"))
             st.write("• " + t("quick_strategy_vip_item_4"))
         else:
-            for item in quick_result[1:]:
-                st.write("• " + str(item))
+            for item in problems[1:]:
+                st.write("• " + item)
+            st.divider()
+            st.markdown(f"## ✨ {t('mentor_opportunities_title')}")
+            for item in opportunities:
+                st.write("• " + item)
+            st.divider()
+            st.markdown(f"## 🚀 {t('mentor_next_title')}")
+            for item in action_plan:
+                st.write(item)
 
 
 def build_anonymous_creator_bible() -> str:
