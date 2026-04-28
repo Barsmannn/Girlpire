@@ -239,6 +239,7 @@ TRANSLATIONS = {
         "vip_upgrade_message": "Upgrade to Girlpire VIP to unlock your strategy",
         "pay_with_crypto": "💰 Unlock with Crypto",
         "pay_with_card": "🚀 Unlock Full Strategy Now",
+        "card_disabled_notice": "Card checkout is temporarily unavailable until the live LemonSqueezy store is approved.",
         "open_crypto_payment": "Open Crypto Payment",
         "crypto_payment_ready": "Your crypto payment page is ready below.",
         "crypto_step_title": "Step 2: Open Your Crypto Checkout",
@@ -683,6 +684,7 @@ TRANSLATIONS = {
         "vip_unlocked_message": "VIP stratejinizin kilidi acildi",
         "vip_upgrade_message": "Stratejinizi acmak icin Girlpire VIP'e gecin",
         "pay_with_card": "🚀 Tam Stratejinin Kilidini Ac",
+        "card_disabled_notice": "Canli LemonSqueezy magazasi onaylanana kadar kart odemesi gecici olarak kapatildi.",
         "pay_with_crypto": "💰 Kripto ile Kilidi Ac",
         "open_crypto_payment": "Kripto Odemesini Ac",
         "crypto_payment_ready": "Kripto odeme sayfaniz asagida hazir.",
@@ -3461,11 +3463,11 @@ def render_checkout_button(
     button_key: str,
     show_supporting_text: bool = False,
 ) -> None:
-    if checkout_url:
+    if card_checkout_enabled() and checkout_url:
         st.link_button(label, checkout_url, use_container_width=True)
     else:
         st.button(label, disabled=True, use_container_width=True, key=button_key)
-        st.warning(t("checkout_missing"))
+        st.caption(t("card_disabled_notice"))
     if show_supporting_text:
         st.caption(t("risk_reversal"))
         st.caption(t("trust_checkout_line1"))
@@ -3654,6 +3656,21 @@ def crypto_checkout_enabled() -> bool:
         secret_get("app", "enable_crypto", default=""),
         secret_get("ENABLE_CRYPTO_CHECKOUT", default=""),
         os.environ.get("ENABLE_CRYPTO_CHECKOUT", ""),
+        "false",
+    )
+    truthy_values = {"1", "true", "yes", "on"}
+    for value in candidate_values:
+        normalized = str(value or "").strip().lower()
+        if normalized:
+            return normalized in truthy_values
+    return False
+
+
+def card_checkout_enabled() -> bool:
+    candidate_values = (
+        secret_get("app", "enable_card_checkout", default=""),
+        secret_get("ENABLE_CARD_CHECKOUT", default=""),
+        os.environ.get("ENABLE_CARD_CHECKOUT", ""),
         "false",
     )
     truthy_values = {"1", "true", "yes", "on"}
@@ -4716,11 +4733,15 @@ def render_paywall(email: str) -> None:
 
     checkout_url = build_checkout_url(email)
     crypto_checkout_container = st.container()
+    card_enabled = card_checkout_enabled()
     crypto_enabled = crypto_checkout_enabled()
     if not st.session_state.get("premium_unlocked", False):
         st.warning(t("vip_upgrade_message"))
-    if checkout_url:
+    if card_enabled and checkout_url:
         st.link_button(t("pay_with_card"), checkout_url, use_container_width=True)
+    else:
+        st.button(t("pay_with_card"), use_container_width=True, disabled=True, key="pay_with_card_disabled")
+        st.caption(t("card_disabled_notice"))
     if crypto_enabled:
         if st.button(t("pay_with_crypto"), use_container_width=True):
             payment_url = create_crypto_payment(email)
@@ -6409,10 +6430,11 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
     render_language_selector("vip_language_selector")
 
     st.divider()
-    if checkout_url:
+    if card_checkout_enabled() and checkout_url:
         st.link_button(t("pay_with_card"), checkout_url, use_container_width=True)
     else:
         st.button(t("pay_with_card"), disabled=True, use_container_width=True, key="vip_nav_card_disabled")
+        st.caption(t("card_disabled_notice"))
 
     if crypto_checkout_enabled():
         if st.button(t("pay_with_crypto"), key="vip_nav_crypto", use_container_width=True):
