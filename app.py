@@ -9,9 +9,10 @@ import os
 from pathlib import Path
 import textwrap
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
@@ -77,6 +78,18 @@ TRANSLATIONS = {
         "dashboard_nav_tracking": "Progress Tracking",
         "dashboard_nav_assets": "VIP Assets",
         "dashboard_nav_membership": "Membership Status",
+        "dashboard_vip_badge": "VIP Active",
+        "dashboard_membership_since": "VIP since",
+        "dashboard_membership_expires": "Access through",
+        "dashboard_membership_locked": "Unlock VIP to access the guide library and private planning tools.",
+        "dashboard_guides_title": "Guide Library",
+        "dashboard_chart_selector": "Chart view",
+        "dashboard_chart_gross": "Gross income trend",
+        "dashboard_chart_net": "Net income trend",
+        "dashboard_chart_target": "Target progress trend",
+        "dashboard_cart_toggle": "Membership",
+        "dashboard_bell_label": "VIP",
+        "dashboard_membership_tip": "Use this panel to confirm your active VIP access window.",
         "dashboard_card_growth": "Growth Signal",
         "dashboard_card_margin": "Margin Quality",
         "dashboard_card_arppu": "Revenue Per Fan",
@@ -498,6 +511,18 @@ TRANSLATIONS = {
         "dashboard_nav_tracking": "Ilerleme Takibi",
         "dashboard_nav_assets": "VIP Varliklari",
         "dashboard_nav_membership": "Uyelik Durumu",
+        "dashboard_vip_badge": "VIP Aktif",
+        "dashboard_membership_since": "VIP baslangici",
+        "dashboard_membership_expires": "Erisim bitisi",
+        "dashboard_membership_locked": "Rehber kutuphanesi ve ozel planlama araclari icin VIP kilidini acin.",
+        "dashboard_guides_title": "Rehber Kutuphanesi",
+        "dashboard_chart_selector": "Grafik gorunumu",
+        "dashboard_chart_gross": "Brut gelir trendi",
+        "dashboard_chart_net": "Net gelir trendi",
+        "dashboard_chart_target": "Hedef ilerleme trendi",
+        "dashboard_cart_toggle": "Uyelik",
+        "dashboard_bell_label": "VIP",
+        "dashboard_membership_tip": "Bu paneli aktif VIP erisim araliginizi dogrulamak icin kullanin.",
         "dashboard_card_growth": "Buyume Sinyali",
         "dashboard_card_margin": "Marj Kalitesi",
         "dashboard_card_arppu": "Fan Basina Gelir",
@@ -1077,6 +1102,44 @@ def normalize_email_list(items: object) -> list[str]:
     return normalized_items
 
 
+def normalize_vip_memberships(items: object) -> dict[str, dict[str, str]]:
+    if not isinstance(items, dict):
+        return {}
+
+    normalized: dict[str, dict[str, str]] = {}
+    for raw_email, raw_value in items.items():
+        email = str(raw_email).strip().lower()
+        if not email:
+            continue
+
+        if isinstance(raw_value, dict):
+            started_at = str(raw_value.get("started_at", today_iso_date())).strip()
+            expires_at = str(raw_value.get("expires_at", "")).strip()
+        else:
+            started_at = today_iso_date()
+            expires_at = ""
+
+        try:
+            started_date = datetime.fromisoformat(started_at).date()
+        except ValueError:
+            started_date = datetime.now().date()
+
+        if expires_at:
+            try:
+                expires_date = datetime.fromisoformat(expires_at).date()
+            except ValueError:
+                expires_date = started_date + timedelta(days=30)
+        else:
+            expires_date = started_date + timedelta(days=30)
+
+        normalized[email] = {
+            "started_at": started_date.isoformat(),
+            "expires_at": expires_date.isoformat(),
+        }
+
+    return normalized
+
+
 def normalize_user_records(items: object) -> list[dict[str, str]]:
     if not isinstance(items, list):
         return []
@@ -1111,7 +1174,7 @@ def normalize_user_records(items: object) -> list[dict[str, str]]:
 
 
 def ensure_emails_file() -> bool:
-    default_data = {"users": [], "paid_users": []}
+    default_data = {"users": [], "paid_users": [], "vip_memberships": {}}
     if EMAILS_FILE.exists():
         return True
     try:
@@ -1125,7 +1188,7 @@ def ensure_emails_file() -> bool:
 
 
 def ensure_email_store() -> dict[str, object]:
-    default_data = {"users": [], "paid_users": []}
+    default_data = {"users": [], "paid_users": [], "vip_memberships": {}}
     if not ensure_emails_file():
         return default_data
 
@@ -1137,6 +1200,7 @@ def ensure_email_store() -> dict[str, object]:
     return {
         "users": normalize_user_records(data.get("users", [])),
         "paid_users": normalize_email_list(data.get("paid_users", [])),
+        "vip_memberships": normalize_vip_memberships(data.get("vip_memberships", {})),
     }
 
 
@@ -1144,6 +1208,7 @@ def write_email_store(data: dict[str, object]) -> bool:
     payload = {
         "users": normalize_user_records(data.get("users", [])),
         "paid_users": normalize_email_list(data.get("paid_users", [])),
+        "vip_memberships": normalize_vip_memberships(data.get("vip_memberships", {})),
     }
     try:
         EMAILS_FILE.write_text(
@@ -1199,6 +1264,7 @@ def save_user_email(email: str, name: str = "") -> bool:
         {
             "users": users,
             "paid_users": email_store.get("paid_users", []),
+            "vip_memberships": email_store.get("vip_memberships", {}),
         }
     )
 
@@ -1215,13 +1281,66 @@ def add_paid_user(email: str, name: str = "") -> bool:
 
     email_store = ensure_email_store()
     paid_users = list(email_store.get("paid_users", []))
+    vip_memberships = dict(email_store.get("vip_memberships", {}))
     if normalized_email in paid_users:
+        if normalized_email not in vip_memberships:
+            start_date = datetime.now().date()
+            vip_memberships[normalized_email] = {
+                "started_at": start_date.isoformat(),
+                "expires_at": (start_date + timedelta(days=30)).isoformat(),
+            }
+            users = list(email_store.get("users", []))
+            return write_email_store(
+                {"users": users, "paid_users": paid_users, "vip_memberships": vip_memberships}
+            )
         return True
 
     paid_users.append(normalized_email)
     users = list(email_store.get("users", []))
     users, _ = upsert_user_record(users, normalized_email, name)
-    return write_email_store({"users": users, "paid_users": paid_users})
+    start_date = datetime.now().date()
+    vip_memberships[normalized_email] = {
+        "started_at": start_date.isoformat(),
+        "expires_at": (start_date + timedelta(days=30)).isoformat(),
+    }
+    return write_email_store(
+        {"users": users, "paid_users": paid_users, "vip_memberships": vip_memberships}
+    )
+
+
+def get_vip_membership_details(email: str) -> dict[str, str]:
+    normalized_email = str(email).strip().lower()
+    if not normalized_email:
+        return {"started_at": "", "expires_at": ""}
+
+    email_store = ensure_email_store()
+    vip_memberships = dict(email_store.get("vip_memberships", {}))
+    membership = vip_memberships.get(normalized_email)
+    if isinstance(membership, dict):
+        return {
+            "started_at": str(membership.get("started_at", "")).strip(),
+            "expires_at": str(membership.get("expires_at", "")).strip(),
+        }
+
+    users = list(email_store.get("users", []))
+    for user_record in users:
+        if str(user_record.get("email", "")).strip().lower() != normalized_email:
+            continue
+        started_at = str(user_record.get("created_at", today_iso_date())).strip()
+        try:
+            started_date = datetime.fromisoformat(started_at).date()
+        except ValueError:
+            started_date = datetime.now().date()
+        return {
+            "started_at": started_date.isoformat(),
+            "expires_at": (started_date + timedelta(days=30)).isoformat(),
+        }
+
+    start_date = datetime.now().date()
+    return {
+        "started_at": start_date.isoformat(),
+        "expires_at": (start_date + timedelta(days=30)).isoformat(),
+    }
 
 
 def build_admin_member_rows(user_records: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -5892,6 +6011,7 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
                 {avatar_html}
                 <div class="wolf-vip-sidebar-name">{html.escape(user_name)}</div>
                 <div class="wolf-vip-sidebar-email">{html.escape(user_email)}</div>
+                <div class="wolf-vip-sidebar-chip">{html.escape(t("dashboard_vip_badge"))}</div>
                 <div class="wolf-vip-sidebar-chip">{html.escape(current_focus_label)}</div>
             </div>
         </div>
@@ -6051,6 +6171,216 @@ def render_vip_guide_section(is_vip: bool, financials: dict[str, float | int | s
         render_strategy_export(financials, strategy_result, tracking_stats)
 
 
+def render_dashboard_guide_library(is_vip: bool) -> None:
+    st.markdown(f"### {t('dashboard_guides_title')}")
+    part_1_bytes = load_pdf_bytes(str(GUIDE_PDF_PART_1_PATH))
+    part_2_bytes = load_pdf_bytes(str(GUIDE_PDF_PART_2_PATH))
+
+    guide_cols = st.columns(2)
+    with guide_cols[0]:
+        render_note_card(t("guide_part_1_title"), t("vip_guide_desc"))
+        if is_vip and part_1_bytes:
+            st.download_button(
+                t("download_guide_pdf_part_1"),
+                data=part_1_bytes,
+                file_name="OnlyFans Beginner's Guide - Part 1.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="dashboard_guide_part_1",
+            )
+        elif not is_vip:
+            st.warning(t("guide_locked_body"))
+        else:
+            st.warning(t("guide_part_1_missing_file"))
+
+    with guide_cols[1]:
+        render_note_card(t("guide_part_2_title"), t("vip_guide_desc"))
+        if is_vip and part_2_bytes:
+            st.download_button(
+                t("download_guide_pdf_part_2"),
+                data=part_2_bytes,
+                file_name="OnlyFans Beginner's Guide - Part 2.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="dashboard_guide_part_2",
+            )
+        elif not is_vip:
+            st.warning(t("guide_locked_body"))
+        else:
+            st.warning(t("guide_part_2_missing_file"))
+
+
+def build_dashboard_chart_dataframe(
+    financials: dict[str, float | int | str],
+    dashboard_snapshot: dict[str, float | int | str],
+    metric_key: str,
+) -> pd.DataFrame:
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    factors = [0.58, 0.67, 0.64, 0.81, 0.75, 0.88, 1.0]
+
+    if metric_key == "gross":
+        base_value = float(financials.get("gross_income", 0.0))
+    elif metric_key == "target":
+        base_value = float(dashboard_snapshot.get("target_income", 0.0))
+    else:
+        base_value = float(financials.get("net_income", 0.0))
+
+    divisor = 4 if base_value > 0 else 1
+    values = [round((base_value * factor) / divisor, 2) for factor in factors]
+    return pd.DataFrame({"Day": days, "Amount": values})
+
+
+def render_membership_status_panel(current_email: str, is_vip: bool) -> None:
+    membership = get_vip_membership_details(current_email)
+    since_value = membership.get("started_at", "") or "-"
+    expires_value = membership.get("expires_at", "") or "-"
+    render_metric_card(
+        t("dashboard_nav_membership"),
+        t("dashboard_vip_badge") if is_vip else t("guide_locked_title"),
+        t("dashboard_membership_tip"),
+    )
+    membership_cols = st.columns(2)
+    with membership_cols[0]:
+        render_metric_card(t("dashboard_membership_since"), since_value)
+    with membership_cols[1]:
+        render_metric_card(t("dashboard_membership_expires"), expires_value)
+
+
+def render_dashboard_home(
+    financials: dict[str, float | int | str],
+    dashboard_snapshot: dict[str, float | int | str],
+    current_focus_label: str,
+    strategy_result: dict[str, object] | None,
+) -> None:
+    current_email = get_current_user_email()
+    is_vip = bool(st.session_state.get("premium_unlocked", False))
+    user_name = get_current_user_name() or "Girlpire Member"
+    user_picture = get_user_claim("picture", "")
+
+    header_cols = st.columns([8.5, 1.2, 1.2], gap="small")
+    with header_cols[0]:
+        st.markdown(
+            f"""
+            <div class="wolf-card" style="padding:0.95rem 1rem; color: var(--wolf-muted);">
+                {html.escape(t("dashboard_search_placeholder"))}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with header_cols[1]:
+        if st.button("🛒", key="dashboard_membership_toggle", use_container_width=True):
+            st.session_state["dashboard_membership_open"] = not bool(
+                st.session_state.get("dashboard_membership_open", False)
+            )
+    with header_cols[2]:
+        st.markdown(
+            f"""
+            <div class="wolf-card" style="padding:0.85rem 0.9rem; text-align:center;">
+                <div style="font-weight:800; color:var(--wolf-text);">{html.escape(t("dashboard_bell_label"))}</div>
+                <div class="wolf-muted" style="font-size:0.8rem;">{html.escape(t("dashboard_vip_badge")) if is_vip else html.escape(t("guide_locked_title"))}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if st.session_state.get("dashboard_membership_open", False):
+        render_membership_status_panel(current_email, is_vip)
+
+    main_col, side_col = st.columns([2.2, 1.0], gap="large")
+    with main_col:
+        stat_cols = st.columns(2)
+        with stat_cols[0]:
+            render_metric_card(
+                "Total Finance",
+                format_currency(float(financials.get("net_income", 0.0))),
+                t("net_income"),
+            )
+        with stat_cols[1]:
+            render_metric_card(
+                "Target Income",
+                format_currency(float(dashboard_snapshot.get("target_income", 0.0))),
+                f"{t('gap_to_target')}: {format_currency(float(dashboard_snapshot.get('gap_value', 0.0)))}",
+            )
+
+        chart_cols = st.columns([1.55, 1.0], gap="large")
+        with chart_cols[0]:
+            st.markdown(f"### {t('mentor_analysis_title')}")
+            metric_choice = st.radio(
+                t("dashboard_chart_selector"),
+                options=[
+                    ("net", t("dashboard_chart_net")),
+                    ("gross", t("dashboard_chart_gross")),
+                    ("target", t("dashboard_chart_target")),
+                ],
+                format_func=lambda item: item[1],
+                horizontal=True,
+                key="dashboard_chart_metric_choice",
+            )
+            chart_df = build_dashboard_chart_dataframe(financials, dashboard_snapshot, metric_choice[0])
+            st.line_chart(chart_df.set_index("Day"), use_container_width=True, height=280)
+
+        with chart_cols[1]:
+            render_metric_card(
+                t("strategy_score"),
+                f"{int(dashboard_snapshot.get('score', 0))}/100",
+                str(dashboard_snapshot.get("status", t("status_average"))),
+            )
+            progress_ratio = clamp_percentage(
+                (
+                    (float(financials.get("net_income", 0.0)) / float(dashboard_snapshot.get("target_income", 0.0)))
+                    * 100
+                )
+                if float(dashboard_snapshot.get("target_income", 0.0)) > 0
+                else 0.0
+            )
+            st.progress(progress_ratio / 100 if progress_ratio > 0 else 0.0)
+            render_note_card(t("focus_of_month"), current_focus_label)
+            membership_preview = get_vip_membership_details(current_email)
+            st.markdown(
+                f"""
+                <div class="wolf-card">
+                    <div class="wolf-inline-title">{html.escape(t('dashboard_nav_membership'))}</div>
+                    <p class="wolf-muted"><strong>{html.escape(t('dashboard_membership_since'))}:</strong> {html.escape(membership_preview.get('started_at', '-'))}</p>
+                    <p class="wolf-muted"><strong>{html.escape(t('dashboard_membership_expires'))}:</strong> {html.escape(membership_preview.get('expires_at', '-'))}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        render_dashboard_guide_library(is_vip)
+
+        if isinstance(strategy_result, dict):
+            render_structured_strategy(strategy_result)
+        else:
+            render_note_card(t("strategy_consultant"), t("strategy_generate_hint"))
+
+    with side_col:
+        avatar_html = (
+            f'<img class="wolf-dashboard-profile-avatar-img" src="{html.escape(user_picture, quote=True)}" alt="{html.escape(user_name)}" />'
+            if user_picture
+            else f'<div class="wolf-dashboard-profile-avatar">{html.escape("".join(part[:1] for part in user_name.split()[:2]).upper() or "GP")}</div>'
+        )
+        st.markdown(
+            f"""
+            <div class="wolf-card">
+                <div class="wolf-dashboard-profile-top">
+                    {avatar_html}
+                    <div class="wolf-dashboard-profile-name">{html.escape(user_name)}</div>
+                    <div class="wolf-dashboard-profile-role">{html.escape(t('vip_title'))}</div>
+                </div>
+                <div class="wolf-vip-sidebar-chip" style="margin-top:0.75rem;">{html.escape(t('dashboard_vip_badge'))}</div>
+                <div class="wolf-vip-sidebar-chip" style="margin-top:0.45rem;">{html.escape(current_focus_label)}</div>
+                <div style="height:0.8rem;"></div>
+                <div class="wolf-inline-title">{html.escape(t('dashboard_nav_membership'))}</div>
+                <p class="wolf-muted">{html.escape(t('dashboard_membership_tip'))}</p>
+                <p class="wolf-muted"><strong>{html.escape(t('dashboard_membership_since'))}:</strong> {html.escape(get_vip_membership_details(current_email).get('started_at', '-'))}</p>
+                <p class="wolf-muted"><strong>{html.escape(t('dashboard_membership_expires'))}:</strong> {html.escape(get_vip_membership_details(current_email).get('expires_at', '-'))}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def render_vip_area(financials: dict[str, float | int | str]) -> None:
     if is_upgrade_flow():
         st.markdown('<div id="vip-section"></div>', unsafe_allow_html=True)
@@ -6098,12 +6428,11 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
     with right_col:
         st.markdown('<div id="vip-content"></div>', unsafe_allow_html=True)
         if selected_section == "dashboard":
-            render_reference_vip_shell(
+            render_dashboard_home(
                 shell_financials,
                 shell_snapshot,
                 current_focus_label,
-                selected_section,
-                compact_mode=True,
+                strategy_result if isinstance(strategy_result, dict) else None,
             )
 
         if selected_section == "strategy":
@@ -6197,11 +6526,6 @@ def render_vip_area(financials: dict[str, float | int | str]) -> None:
         )
 
         if selected_section == "dashboard":
-            render_vip_dashboard_overview(financials, dashboard_snapshot, current_focus_label)
-            if strategy_result:
-                render_structured_strategy(strategy_result)
-            else:
-                render_note_card(t("strategy_consultant"), t("strategy_generate_hint"))
             render_admin_panel(current_email, show_wrapper=False)
 
         elif selected_section == "calculator":
