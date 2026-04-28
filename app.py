@@ -6028,6 +6028,17 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
             st.rerun()
 
     st.button(t("logout"), key="vip_nav_logout", use_container_width=True, on_click=st.logout)
+    st.markdown(
+        f'<div class="wolf-panel-label" style="margin-top:0.85rem;">{html.escape(t("language"))}</div>',
+        unsafe_allow_html=True,
+    )
+    st.selectbox(
+        t("language"),
+        options=list(LANGUAGE_OPTIONS.keys()),
+        format_func=lambda code: LANGUAGE_OPTIONS[code],
+        key="language",
+        label_visibility="collapsed",
+    )
 
     st.divider()
     if checkout_url:
