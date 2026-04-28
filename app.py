@@ -248,6 +248,7 @@ TRANSLATIONS = {
         "crypto_direct_link": "Direct payment link",
         "crypto_payment_failed": "Crypto payment failed",
         "crypto_payment_unavailable": "Add NOWPAYMENTS_API_KEY or nowpayments.api_key to Streamlit secrets to enable crypto payments.",
+        "crypto_disabled_notice": "Crypto checkout is temporarily unavailable while we finish the production setup.",
         "add_myself_vip": "Add myself to VIP",
         "vip_add_success": "You are now VIP",
         "total_users_metric": "Total Users",
@@ -284,6 +285,7 @@ TRANSLATIONS = {
         "checkout_missing": "Add lemonsqueezy.checkout_url to secrets to enable the checkout button.",
         "payment_notice": "VIP is unlocked only after a real payment is synced into your paid user list or a verified LemonSqueezy subscription record is found.",
         "vip_sync_notice": "Crypto payments unlock automatically after the confirmed webhook reaches Girlpire. If you just paid, refresh this page in a few seconds.",
+        "vip_refresh_checkout_notice": "If you just completed card checkout, tap refresh below to sync your VIP access.",
         "refresh_vip_access": "I Already Paid - Refresh VIP Access",
         "vip_refresh_success": "VIP access was found and refreshed.",
         "vip_refresh_pending": "No verified VIP access was found yet. If you paid just now, wait a moment and try again.",
@@ -684,6 +686,7 @@ TRANSLATIONS = {
         "crypto_direct_link": "Dogrudan odeme linki",
         "crypto_payment_failed": "Kripto odemesi basarisiz oldu",
         "crypto_payment_unavailable": "Kripto odemelerini etkinlestirmek icin Streamlit secrets icine NOWPAYMENTS_API_KEY veya nowpayments.api_key ekleyin.",
+        "crypto_disabled_notice": "Canli kurulum tamamlanirken kripto odemeleri gecici olarak kapatildi.",
         "add_myself_vip": "Kendimi VIP Yap",
         "vip_add_success": "Artik VIP'siniz",
         "total_users_metric": "Toplam Kullanici",
@@ -720,6 +723,7 @@ TRANSLATIONS = {
         "checkout_missing": "Odeme butonunu etkinlestirmek icin secrets icine lemonsqueezy.checkout_url ekleyin.",
         "payment_notice": "VIP yalnizca gercek odeme paid user listenize senkronlandiginda veya dogrulanmis LemonSqueezy abonelik kaydi bulundugunda acilir.",
         "vip_sync_notice": "Kripto odemeleri, onaylanmis webhook Girlpire'a ulastiginda otomatik acilir. Az once odeme yaptiysaniz, bu sayfayi birkac saniye sonra yenileyin.",
+        "vip_refresh_checkout_notice": "Kart odemesini yeni tamamladiysaniz, VIP erisiminizi senkronlamak icin asagidaki yenile butonunu kullanin.",
         "refresh_vip_access": "Odeme Yaptim - VIP Erisimini Yenile",
         "vip_refresh_success": "VIP erisimi bulundu ve yenilendi.",
         "vip_refresh_pending": "Henuz dogrulanmis VIP erisimi bulunamadi. Az once odeme yaptiysaniz biraz bekleyip tekrar deneyin.",
@@ -3556,6 +3560,21 @@ def get_nowpayments_api_key() -> str:
     return ""
 
 
+def crypto_checkout_enabled() -> bool:
+    candidate_values = (
+        secret_get("app", "enable_crypto", default=""),
+        secret_get("ENABLE_CRYPTO_CHECKOUT", default=""),
+        os.environ.get("ENABLE_CRYPTO_CHECKOUT", ""),
+        "false",
+    )
+    truthy_values = {"1", "true", "yes", "on"}
+    for value in candidate_values:
+        normalized = str(value or "").strip().lower()
+        if normalized:
+            return normalized in truthy_values
+    return False
+
+
 def get_nowpayments_preferred_pay_currency() -> str:
     candidate_values = (
         secret_get("nowpayments", "preferred_pay_currency", default=""),
@@ -4609,27 +4628,34 @@ def render_paywall(email: str) -> None:
 
     checkout_url = build_checkout_url(email)
     crypto_checkout_container = st.container()
+    crypto_enabled = crypto_checkout_enabled()
     if not st.session_state.get("premium_unlocked", False):
         st.warning(t("vip_upgrade_message"))
     if checkout_url:
         st.link_button(t("pay_with_card"), checkout_url, use_container_width=True)
-    if st.button(t("pay_with_crypto"), use_container_width=True):
-        payment_url = create_crypto_payment(email)
-        if payment_url:
-            st.session_state[crypto_state_key] = payment_url
-            st.success(t("crypto_payment_ready"))
-        elif not get_nowpayments_api_key():
-            st.error(t("crypto_payment_unavailable"))
-        else:
-            st.error(t("crypto_payment_failed"))
-    saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
-    if saved_crypto_url:
-        with crypto_checkout_container:
-            render_note_card(t("crypto_step_title"), t("crypto_step_body"))
-            st.info(t("crypto_payment_manual_hint"))
-            st.link_button(t("open_crypto_payment"), saved_crypto_url, use_container_width=True)
-            st.markdown(f"**{t('crypto_direct_link')}:** {saved_crypto_url}")
-    st.caption(t("vip_sync_notice"))
+    if crypto_enabled:
+        if st.button(t("pay_with_crypto"), use_container_width=True):
+            payment_url = create_crypto_payment(email)
+            if payment_url:
+                st.session_state[crypto_state_key] = payment_url
+                st.success(t("crypto_payment_ready"))
+            elif not get_nowpayments_api_key():
+                st.error(t("crypto_payment_unavailable"))
+            else:
+                st.error(t("crypto_payment_failed"))
+        saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
+        if saved_crypto_url:
+            with crypto_checkout_container:
+                render_note_card(t("crypto_step_title"), t("crypto_step_body"))
+                st.info(t("crypto_payment_manual_hint"))
+                st.link_button(t("open_crypto_payment"), saved_crypto_url, use_container_width=True)
+                st.markdown(f"**{t('crypto_direct_link')}:** {saved_crypto_url}")
+        st.caption(t("vip_sync_notice"))
+    else:
+        st.button(t("pay_with_crypto"), use_container_width=True, disabled=True, key="pay_with_crypto_disabled")
+        st.caption(t("crypto_disabled_notice"))
+        st.session_state.pop(crypto_state_key, None)
+    st.caption(t("vip_refresh_checkout_notice"))
     if st.button(t("refresh_vip_access"), use_container_width=True):
         refreshed = check_lemonsqueezy_status(email, force_refresh=True) or sync_paid_user_from_remote(
             email
@@ -6300,23 +6326,33 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
     else:
         st.button(t("pay_with_card"), disabled=True, use_container_width=True, key="vip_nav_card_disabled")
 
-    if st.button(t("pay_with_crypto"), key="vip_nav_crypto", use_container_width=True):
-        payment_url = create_crypto_payment(user_email)
-        if payment_url:
-            st.session_state[crypto_state_key] = payment_url
-            st.success(t("crypto_payment_ready"))
-        elif not get_nowpayments_api_key():
-            st.warning(t("crypto_payment_unavailable"))
-        else:
-            st.error(t("crypto_payment_failed"))
+    if crypto_checkout_enabled():
+        if st.button(t("pay_with_crypto"), key="vip_nav_crypto", use_container_width=True):
+            payment_url = create_crypto_payment(user_email)
+            if payment_url:
+                st.session_state[crypto_state_key] = payment_url
+                st.success(t("crypto_payment_ready"))
+            elif not get_nowpayments_api_key():
+                st.warning(t("crypto_payment_unavailable"))
+            else:
+                st.error(t("crypto_payment_failed"))
 
-    saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
-    if saved_crypto_url:
-        st.link_button(
-            t("open_crypto_payment"),
-            saved_crypto_url,
+        saved_crypto_url = str(st.session_state.get(crypto_state_key, "") or "").strip()
+        if saved_crypto_url:
+            st.link_button(
+                t("open_crypto_payment"),
+                saved_crypto_url,
+                use_container_width=True,
+            )
+    else:
+        st.button(
+            t("pay_with_crypto"),
+            key="vip_nav_crypto_disabled",
             use_container_width=True,
+            disabled=True,
         )
+        st.caption(t("crypto_disabled_notice"))
+        st.session_state.pop(crypto_state_key, None)
 
 
 def render_vip_calculator_section() -> dict[str, float | int | str] | None:
