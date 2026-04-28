@@ -18,19 +18,132 @@ WEBHOOK_SYNC_SECRET = os.getenv("WEBHOOK_SYNC_SECRET", "")
 def ensure_file():
     if not DATA_PATH.exists():
         DATA_PATH.write_text(
-            json.dumps({"users": [], "paid_users": []}, indent=2) + "\n",
+            json.dumps({"users": [], "paid_users": [], "vip_memberships": {}}, indent=2) + "\n",
             encoding="utf-8",
         )
 
 
-def add_paid_user(email):
+def normalize_vip_memberships(items: object) -> dict[str, dict[str, str]]:
+    if not isinstance(items, dict):
+        return {}
+
+    normalized: dict[str, dict[str, str]] = {}
+    for email, raw_value in items.items():
+        normalized_email = normalize_email(email)
+        if not normalized_email:
+            continue
+
+        started_at = ""
+        expires_at = ""
+        if isinstance(raw_value, dict):
+            started_at = str(raw_value.get("started_at", "")).strip()
+            expires_at = str(raw_value.get("expires_at", "")).strip()
+
+        if not started_at:
+            started_at = datetime_now_date_iso()
+        if not expires_at:
+            expires_at = add_days_iso(started_at, 30)
+
+        normalized[normalized_email] = {
+            "started_at": started_at,
+            "expires_at": expires_at,
+        }
+    return normalized
+
+
+def datetime_now_date_iso() -> str:
+    from datetime import datetime
+
+    return datetime.now().date().isoformat()
+
+
+def add_days_iso(started_at: str, days: int) -> str:
+    from datetime import datetime, timedelta
+
+    try:
+        started_date = datetime.fromisoformat(started_at).date()
+    except ValueError:
+        started_date = datetime.now().date()
+    return (started_date + timedelta(days=days)).isoformat()
+
+
+def read_store() -> dict[str, object]:
     ensure_file()
     data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    return {
+        "users": data.get("users", []),
+        "paid_users": [normalize_email(item) for item in data.get("paid_users", []) if normalize_email(item)],
+        "vip_memberships": normalize_vip_memberships(data.get("vip_memberships", {})),
+    }
 
-    if email and email not in data.get("paid_users", []):
-        data["paid_users"].append(email)
 
-    DATA_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+def write_store(data: dict[str, object]) -> None:
+    payload = {
+        "users": data.get("users", []),
+        "paid_users": [normalize_email(item) for item in data.get("paid_users", []) if normalize_email(item)],
+        "vip_memberships": normalize_vip_memberships(data.get("vip_memberships", {})),
+    }
+    DATA_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def membership_is_active(membership: dict[str, str]) -> bool:
+    from datetime import datetime
+
+    expires_at = str(membership.get("expires_at", "")).strip()
+    if not expires_at:
+        return False
+    try:
+        expires_date = datetime.fromisoformat(expires_at).date()
+    except ValueError:
+        return False
+    return expires_date >= datetime.now().date()
+
+
+def prune_expired_paid_users(data: dict[str, object]) -> dict[str, object]:
+    vip_memberships = normalize_vip_memberships(data.get("vip_memberships", {}))
+    paid_users = [normalize_email(item) for item in data.get("paid_users", []) if normalize_email(item)]
+    active_paid_users = [
+        email for email in paid_users if membership_is_active(vip_memberships.get(email, {}))
+    ]
+    if active_paid_users == paid_users:
+        data["vip_memberships"] = vip_memberships
+        return data
+
+    updated = {
+        "users": data.get("users", []),
+        "paid_users": active_paid_users,
+        "vip_memberships": vip_memberships,
+    }
+    write_store(updated)
+    return updated
+
+
+def add_paid_user(email, days: int = 30):
+    ensure_file()
+    data = prune_expired_paid_users(read_store())
+    normalized_email = normalize_email(email)
+    if not normalized_email:
+        return
+
+    paid_users = list(data.get("paid_users", []))
+    vip_memberships = dict(data.get("vip_memberships", {}))
+
+    if normalized_email not in paid_users:
+        paid_users.append(normalized_email)
+
+    started_at = datetime_now_date_iso()
+    vip_memberships[normalized_email] = {
+        "started_at": started_at,
+        "expires_at": add_days_iso(started_at, days),
+    }
+
+    write_store(
+        {
+            "users": data.get("users", []),
+            "paid_users": paid_users,
+            "vip_memberships": vip_memberships,
+        }
+    )
 
 
 def normalize_email(email: str) -> str:
@@ -42,11 +155,13 @@ def email_is_paid(email: str) -> bool:
     if not normalized_email:
         return False
 
-    ensure_file()
-    data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    data = prune_expired_paid_users(read_store())
+    paid_users = set(data.get("paid_users", []))
+    if normalized_email not in paid_users:
+        return False
 
-    paid_users = {normalize_email(item) for item in data.get("paid_users", [])}
-    return normalized_email in paid_users
+    vip_memberships = dict(data.get("vip_memberships", {}))
+    return membership_is_active(vip_memberships.get(normalized_email, {}))
 
 
 def verify_ipn_signature(request_body: bytes, signature: str) -> bool:
@@ -103,14 +218,16 @@ async def handle_nowpayments_ipn(request: Request, require_signature: bool = Fal
 
 @app.post("/lemons/webhook")
 async def webhook(request: Request):
+    if not LEMON_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Lemon webhook secret not configured")
+
     raw_body = await request.body()
     payload = json.loads(raw_body)
     print("LEMON PAYLOAD:", payload)
 
-    if LEMON_WEBHOOK_SECRET:
-        signature = request.headers.get("x-signature", "")
-        if not verify_lemon_signature(raw_body, signature):
-            raise HTTPException(status_code=401, detail="Invalid signature")
+    signature = request.headers.get("x-signature", "")
+    if not verify_lemon_signature(raw_body, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
 
     meta = payload.get("meta", {}) or {}
     custom_data = meta.get("custom_data", {}) or {}

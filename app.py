@@ -1302,6 +1302,77 @@ def write_email_store(data: dict[str, object]) -> bool:
         return False
 
 
+def _derive_membership_details(
+    email_store: dict[str, object], normalized_email: str
+) -> dict[str, str]:
+    if not normalized_email:
+        return {"started_at": "", "expires_at": ""}
+
+    paid_users = set(email_store.get("paid_users", []))
+    vip_memberships = dict(email_store.get("vip_memberships", {}))
+    membership = vip_memberships.get(normalized_email)
+
+    if not membership and normalized_email not in paid_users:
+        return {"started_at": "", "expires_at": ""}
+
+    if isinstance(membership, dict):
+        started_at = str(membership.get("started_at", "")).strip()
+        expires_at = str(membership.get("expires_at", "")).strip()
+        if started_at and expires_at:
+            return {"started_at": started_at, "expires_at": expires_at}
+
+    users = list(email_store.get("users", []))
+    for user_record in users:
+        if str(user_record.get("email", "")).strip().lower() != normalized_email:
+            continue
+        started_at = str(user_record.get("created_at", today_iso_date())).strip()
+        try:
+            started_date = datetime.fromisoformat(started_at).date()
+        except ValueError:
+            started_date = datetime.now().date()
+        return {
+            "started_at": started_date.isoformat(),
+            "expires_at": (started_date + timedelta(days=30)).isoformat(),
+        }
+
+    return {"started_at": "", "expires_at": ""}
+
+
+def vip_membership_is_active(
+    email_store: dict[str, object], email: str, *, reference_date: datetime | None = None
+) -> bool:
+    normalized_email = str(email or "").strip().lower()
+    membership = _derive_membership_details(email_store, normalized_email)
+    expires_at = str(membership.get("expires_at", "")).strip()
+    if not expires_at:
+        return False
+
+    try:
+        expires_date = datetime.fromisoformat(expires_at).date()
+    except ValueError:
+        return False
+
+    today_date = (reference_date or datetime.now()).date()
+    return expires_date >= today_date
+
+
+def prune_expired_paid_users(email_store: dict[str, object]) -> dict[str, object]:
+    paid_users = list(email_store.get("paid_users", []))
+    active_paid_users = [
+        email for email in paid_users if vip_membership_is_active(email_store, email)
+    ]
+    if active_paid_users == paid_users:
+        return email_store
+
+    updated_store = {
+        "users": list(email_store.get("users", [])),
+        "paid_users": active_paid_users,
+        "vip_memberships": dict(email_store.get("vip_memberships", {})),
+    }
+    write_email_store(updated_store)
+    return updated_store
+
+
 def upsert_user_record(users: list[dict[str, str]], email: str, name: str = "") -> tuple[list[dict[str, str]], bool]:
     normalized_email = str(email).strip().lower()
     normalized_name = " ".join(str(name).strip().split())
@@ -1352,7 +1423,7 @@ def save_user_email(email: str, name: str = "") -> bool:
 
 
 def load_paid_users() -> list[str]:
-    email_store = ensure_email_store()
+    email_store = prune_expired_paid_users(ensure_email_store())
     return list(email_store.get("paid_users", []))
 
 
@@ -1365,17 +1436,16 @@ def add_paid_user(email: str, name: str = "") -> bool:
     paid_users = list(email_store.get("paid_users", []))
     vip_memberships = dict(email_store.get("vip_memberships", {}))
     if normalized_email in paid_users:
-        if normalized_email not in vip_memberships:
-            start_date = datetime.now().date()
-            vip_memberships[normalized_email] = {
-                "started_at": start_date.isoformat(),
-                "expires_at": (start_date + timedelta(days=30)).isoformat(),
-            }
-            users = list(email_store.get("users", []))
-            return write_email_store(
-                {"users": users, "paid_users": paid_users, "vip_memberships": vip_memberships}
-            )
-        return True
+        users = list(email_store.get("users", []))
+        users, _ = upsert_user_record(users, normalized_email, name)
+        start_date = datetime.now().date()
+        vip_memberships[normalized_email] = {
+            "started_at": start_date.isoformat(),
+            "expires_at": (start_date + timedelta(days=30)).isoformat(),
+        }
+        return write_email_store(
+            {"users": users, "paid_users": paid_users, "vip_memberships": vip_memberships}
+        )
 
     paid_users.append(normalized_email)
     users = list(email_store.get("users", []))
@@ -1425,33 +1495,7 @@ def get_vip_membership_details(email: str) -> dict[str, str]:
         return {"started_at": "", "expires_at": ""}
 
     email_store = ensure_email_store()
-    vip_memberships = dict(email_store.get("vip_memberships", {}))
-    membership = vip_memberships.get(normalized_email)
-    if isinstance(membership, dict):
-        return {
-            "started_at": str(membership.get("started_at", "")).strip(),
-            "expires_at": str(membership.get("expires_at", "")).strip(),
-        }
-
-    users = list(email_store.get("users", []))
-    for user_record in users:
-        if str(user_record.get("email", "")).strip().lower() != normalized_email:
-            continue
-        started_at = str(user_record.get("created_at", today_iso_date())).strip()
-        try:
-            started_date = datetime.fromisoformat(started_at).date()
-        except ValueError:
-            started_date = datetime.now().date()
-        return {
-            "started_at": started_date.isoformat(),
-            "expires_at": (started_date + timedelta(days=30)).isoformat(),
-        }
-
-    start_date = datetime.now().date()
-    return {
-        "started_at": start_date.isoformat(),
-        "expires_at": (start_date + timedelta(days=30)).isoformat(),
-    }
+    return _derive_membership_details(email_store, normalized_email)
 
 
 def build_admin_member_rows(user_records: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -3555,6 +3599,9 @@ def check_subscription_status(email: str, *, force_refresh: bool = False) -> boo
 
     if check_lemonsqueezy_status(email, force_refresh=force_refresh):
         return True
+
+    if not crypto_checkout_enabled():
+        return False
 
     return sync_paid_user_from_remote(email)
 
@@ -7015,7 +7062,7 @@ def render_admin_panel(user_email: str, show_wrapper: bool = True) -> None:
         return
 
     admin_email = get_admin_email()
-    email_store = ensure_email_store()
+    email_store = prune_expired_paid_users(ensure_email_store())
     users = list(email_store.get("users", []))
     paid_users = list(email_store.get("paid_users", []))
     vip_records = build_vip_member_records(users, paid_users)
