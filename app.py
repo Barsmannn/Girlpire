@@ -9,7 +9,6 @@ import math
 import os
 from pathlib import Path
 import textwrap
-import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -4520,7 +4519,6 @@ def render_free_calculator() -> dict[str, float | int | str] | None:
     if submitted:
         st.session_state["clicked_cta"] = False
         with st.spinner(t("analyzing_potential")):
-            time.sleep(1.4)
             st.session_state["money_engine_result"] = build_money_engine_result(
                 int(follower_count),
                 float(monthly_sub_price),
@@ -6439,7 +6437,6 @@ def render_vip_calculator_section() -> dict[str, float | int | str] | None:
 
     if submitted:
         with st.spinner(t("analyzing_potential")):
-            time.sleep(1.0)
             st.session_state["follower_count"] = int(follower_count)
             st.session_state["monthly_sub_price"] = float(monthly_sub_price)
             st.session_state["expected_tips_ppv"] = float(expected_tips_ppv)
