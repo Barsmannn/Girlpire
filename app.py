@@ -962,6 +962,42 @@ def t(key: str) -> str:
     )
 
 
+def sync_language_from_query_params() -> None:
+    params = getattr(st, "query_params", None)
+    if params is None:
+        return
+
+    raw_language = params.get("lang", "")
+    if isinstance(raw_language, (list, tuple)):
+        raw_language = raw_language[0] if raw_language else ""
+    selected_language = str(raw_language).strip().lower()
+    if selected_language in LANGUAGE_OPTIONS:
+        st.session_state["language"] = selected_language
+
+
+def render_language_selector(widget_key: str) -> None:
+    current_language = str(st.session_state.get("language", "en")).strip().lower()
+    if current_language not in LANGUAGE_OPTIONS:
+        current_language = "en"
+        st.session_state["language"] = current_language
+
+    selected_language = st.selectbox(
+        t("language"),
+        options=list(LANGUAGE_OPTIONS.keys()),
+        index=list(LANGUAGE_OPTIONS.keys()).index(current_language),
+        format_func=lambda code: LANGUAGE_OPTIONS[code],
+        key=widget_key,
+        label_visibility="collapsed",
+    )
+
+    if selected_language != current_language:
+        st.session_state["language"] = selected_language
+        params = getattr(st, "query_params", None)
+        if params is not None:
+            params["lang"] = selected_language
+        st.rerun()
+
+
 def secret_get(*keys: str, default=None):
     current = st.secrets
     try:
@@ -1427,6 +1463,9 @@ def build_app_url_with_params(**params: str | None) -> str:
     base_url = get_app_url() or "http://localhost:8501"
     split_url = urlsplit(base_url)
     query_params = dict(parse_qsl(split_url.query, keep_blank_values=True))
+    current_language = str(st.session_state.get("language", "en")).strip().lower()
+    if current_language in LANGUAGE_OPTIONS:
+        query_params["lang"] = current_language
     for key, value in params.items():
         if value is None:
             query_params.pop(key, None)
@@ -2682,6 +2721,13 @@ def render_styles() -> None:
             margin-top: 0.35rem;
         }
 
+        .wolf-guide-card {
+            min-height: 176px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
         [data-testid="stAlert"] {
             border-radius: 20px;
             border: 1px solid rgba(159, 122, 234, 0.20);
@@ -2814,13 +2860,7 @@ def render_header() -> None:
             f'<div class="wolf-panel-label">{html.escape(t("language"))}</div>',
             unsafe_allow_html=True,
         )
-        st.selectbox(
-            t("language"),
-            options=list(LANGUAGE_OPTIONS.keys()),
-            format_func=lambda code: LANGUAGE_OPTIONS[code],
-            key="language",
-            label_visibility="collapsed",
-        )
+        render_language_selector("header_language_selector")
         if is_logged_in():
             render_user_menu()
 
@@ -2928,6 +2968,18 @@ def render_note_card(title: str, body: str) -> None:
     st.markdown(
         f"""
         <div class="wolf-card">
+            <div class="wolf-inline-title">{html.escape(title)}</div>
+            <p class="wolf-muted">{html.escape(body)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_guide_library_card(title: str, body: str) -> None:
+    st.markdown(
+        f"""
+        <div class="wolf-card wolf-guide-card">
             <div class="wolf-inline-title">{html.escape(title)}</div>
             <p class="wolf-muted">{html.escape(body)}</p>
         </div>
@@ -6039,13 +6091,7 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
         f'<div class="wolf-panel-label" style="margin-top:0.85rem;">{html.escape(t("language"))}</div>',
         unsafe_allow_html=True,
     )
-    st.selectbox(
-        t("language"),
-        options=list(LANGUAGE_OPTIONS.keys()),
-        format_func=lambda code: LANGUAGE_OPTIONS[code],
-        key="language",
-        label_visibility="collapsed",
-    )
+    render_language_selector("vip_language_selector")
 
     st.divider()
     if checkout_url:
@@ -6238,7 +6284,7 @@ def render_dashboard_guide_library(is_vip: bool) -> None:
 
     guide_cols = st.columns(3)
     with guide_cols[0]:
-        render_note_card(t("guide_app_title"), t("vip_guide_desc"))
+        render_guide_library_card(t("guide_app_title"), t("vip_guide_desc"))
         if is_vip and app_bytes:
             st.download_button(
                 t("download_guide_pdf_app"),
@@ -6254,7 +6300,7 @@ def render_dashboard_guide_library(is_vip: bool) -> None:
             st.warning(t("guide_app_missing_file"))
 
     with guide_cols[1]:
-        render_note_card(t("guide_part_1_title"), t("vip_guide_desc"))
+        render_guide_library_card(t("guide_part_1_title"), t("vip_guide_desc"))
         if is_vip and part_1_bytes:
             st.download_button(
                 t("download_guide_pdf_part_1"),
@@ -6270,7 +6316,7 @@ def render_dashboard_guide_library(is_vip: bool) -> None:
             st.warning(t("guide_part_1_missing_file"))
 
     with guide_cols[2]:
-        render_note_card(t("guide_part_2_title"), t("vip_guide_desc"))
+        render_guide_library_card(t("guide_part_2_title"), t("vip_guide_desc"))
         if is_vip and part_2_bytes:
             st.download_button(
                 t("download_guide_pdf_part_2"),
@@ -6780,6 +6826,7 @@ def render_admin_panel(user_email: str, show_wrapper: bool = True) -> None:
 
 def main() -> None:
     init_state()
+    sync_language_from_query_params()
     detect_email_traffic()
     render_styles()
     if not google_login_ready():
