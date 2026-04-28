@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import csv
 import html
 import io
@@ -35,6 +36,8 @@ EMAILS_FILE = APP_DIR / "emails.json"
 GUIDE_PDF_APP_PATH = APP_DIR / "assets" / "Onlyfans App Guide.pdf"
 GUIDE_PDF_PART_1_PATH = APP_DIR / "assets" / "OnlyFans Beginner's Guide - Part 1.pdf"
 GUIDE_PDF_PART_2_PATH = APP_DIR / "assets" / "OnlyFans Beginner's Guide - Part 2.pdf"
+BRAND_LOGO_WORDMARK_PATH = APP_DIR / "assets" / "girlpire-logo-dark-wordmark.png"
+BRAND_LOGO_SYMBOL_PATH = APP_DIR / "assets" / "girlpire-logo-g-symbol.png"
 load_dotenv(dotenv_path=APP_DIR / ".env", override=False)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 APP_TITLE = "Girlpire - OnlyFans Success Portal"
@@ -55,6 +58,25 @@ LANGUAGE_OPTIONS = {
     "pt": "Portugues",
     "it": "Italiano",
 }
+
+
+@st.cache_data(show_spinner=False)
+def get_asset_data_uri(path_str: str) -> str:
+    path = Path(path_str)
+    if not path.exists():
+        return ""
+    suffix = path.suffix.lower()
+    mime = "image/png" if suffix == ".png" else "image/jpeg"
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
+
+def get_brand_wordmark_uri() -> str:
+    return get_asset_data_uri(str(BRAND_LOGO_WORDMARK_PATH))
+
+
+def get_brand_symbol_uri() -> str:
+    return get_asset_data_uri(str(BRAND_LOGO_SYMBOL_PATH))
 TRANSLATIONS = {
     "en": {
         "brand": "Girlpire",
@@ -1766,6 +1788,44 @@ def render_styles() -> None:
             padding: clamp(1.35rem, 4vw, 2.4rem);
         }
 
+        .wolf-logo-lockup {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .wolf-logo-wordmark {
+            width: min(100%, 340px);
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 18px 40px rgba(3, 6, 15, 0.36));
+        }
+
+        .wolf-logo-wordmark-sm {
+            width: min(100%, 220px);
+        }
+
+        .wolf-logo-symbol-badge {
+            width: 76px;
+            height: 76px;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, rgba(18, 24, 39, 0.96), rgba(10, 14, 24, 0.98));
+            border: 1px solid rgba(159, 122, 234, 0.18);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.03),
+                0 18px 48px rgba(3, 6, 15, 0.42);
+        }
+
+        .wolf-logo-symbol {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 20px;
+        }
+
         .wolf-card,
         .wolf-userbox {
             padding: 1.1rem;
@@ -1786,6 +1846,10 @@ def render_styles() -> None:
             gap: 0.45rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid rgba(159, 122, 234, 0.18);
+        }
+
+        .wolf-vip-sidebar-brand {
+            margin-bottom: 0.4rem;
         }
 
         .wolf-vip-sidebar-name {
@@ -1868,6 +1932,30 @@ def render_styles() -> None:
             color: #f6c8e4;
             font-weight: 700;
             margin-top: 0.65rem;
+        }
+
+        .wolf-dashboard-brandbar {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            min-height: 3rem;
+        }
+
+        .wolf-dashboard-brand-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.18rem;
+        }
+
+        .wolf-dashboard-brand-title {
+            color: var(--wolf-text);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .wolf-dashboard-brand-subtitle {
+            color: var(--wolf-muted);
+            font-size: 0.78rem;
         }
 
         .wolf-banner-link {
@@ -2801,6 +2889,14 @@ def render_styles() -> None:
                 font-size: clamp(2rem, 9vw, 2.8rem);
             }
 
+            .wolf-logo-wordmark {
+                width: min(100%, 280px);
+            }
+
+            .wolf-logo-wordmark-sm {
+                width: min(100%, 180px);
+            }
+
             .wolf-preview-grid {
                 grid-template-columns: 1fr;
             }
@@ -2842,13 +2938,49 @@ def render_styles() -> None:
     )
 
 
+def render_brand_wordmark(compact: bool = False) -> None:
+    wordmark_uri = get_brand_wordmark_uri()
+    size_class = " wolf-logo-wordmark-sm" if compact else ""
+    if wordmark_uri:
+        st.markdown(
+            f"""
+            <div class="wolf-logo-lockup">
+                <img class="wolf-logo-wordmark{size_class}" src="{wordmark_uri}" alt="{html.escape(t('brand'))}" />
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<div class="wolf-brand">{html.escape(t("brand"))}</div>',
+            unsafe_allow_html=True,
+        )
+
+
+def get_brand_symbol_html() -> str:
+    symbol_uri = get_brand_symbol_uri()
+    if not symbol_uri:
+        return '<div class="wolf-logo-symbol-badge"><div class="wolf-avatar">GP</div></div>'
+    return (
+        '<div class="wolf-logo-symbol-badge">'
+        f'<img class="wolf-logo-symbol" src="{symbol_uri}" alt="{html.escape(t("brand"))}" />'
+        "</div>"
+    )
+
+
 def render_header() -> None:
     left, right = st.columns([2.1, 1.0], gap="large")
     with left:
+        logo_block = get_brand_wordmark_uri()
+        logo_html = (
+            f'<img class="wolf-logo-wordmark wolf-logo-wordmark-sm" src="{logo_block}" alt="{html.escape(t("brand"))}" />'
+            if logo_block
+            else f'<div class="wolf-brand">{html.escape(t("brand"))}</div>'
+        )
         st.markdown(
             f"""
             <section class="wolf-hero">
-                <div class="wolf-brand">{html.escape(t("brand"))}</div>
+                <div class="wolf-logo-lockup">{logo_html}</div>
                 <h1 class="wolf-title">{html.escape(t("hero_title"))}</h1>
                 <p class="wolf-subtitle">{html.escape(t("hero_subtitle"))}</p>
             </section>
@@ -2908,10 +3040,16 @@ def render_google_login_screen() -> None:
     ]
     left, right = st.columns([1.35, 1], gap="large")
     with left:
+        logo_block = get_brand_wordmark_uri()
+        logo_html = (
+            f'<img class="wolf-logo-wordmark" src="{logo_block}" alt="{html.escape(t("brand"))}" />'
+            if logo_block
+            else f'<div class="wolf-brand">{html.escape(t("brand"))}</div>'
+        )
         st.markdown(
             f"""
             <section class="wolf-hero wolf-login-hero">
-                <div class="wolf-brand">{html.escape(t("brand"))}</div>
+                <div class="wolf-logo-lockup">{logo_html}</div>
                 <div class="wolf-login-copy">
                     <h1 class="wolf-title">{html.escape(t("hero_title"))}</h1>
                     <p class="wolf-subtitle">{html.escape(t("hero_subtitle"))}</p>
@@ -6069,6 +6207,7 @@ def render_vip_navigation_panel(selected_section: str, current_focus_label: str)
         f"""
         <div class="wolf-card wolf-vip-sidebar-shell">
             <div class="wolf-vip-sidebar-profile">
+                <div class="wolf-vip-sidebar-brand">{get_brand_symbol_html()}</div>
                 {avatar_html}
                 <div class="wolf-vip-sidebar-name">{html.escape(user_name)}</div>
                 <div class="wolf-vip-sidebar-email">{html.escape(user_email)}</div>
@@ -6383,8 +6522,14 @@ def render_dashboard_home(
     with header_cols[0]:
         st.markdown(
             f"""
-            <div class="wolf-card" style="padding:0.95rem 1rem; color: var(--wolf-muted);">
-                {html.escape(t("dashboard_search_placeholder"))}
+            <div class="wolf-card" style="padding:0.95rem 1rem;">
+                <div class="wolf-dashboard-brandbar">
+                    {get_brand_symbol_html()}
+                    <div class="wolf-dashboard-brand-meta">
+                        <div class="wolf-dashboard-brand-title">{html.escape(t("brand"))}</div>
+                        <div class="wolf-dashboard-brand-subtitle">{html.escape(t("dashboard_workspace"))}</div>
+                    </div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
