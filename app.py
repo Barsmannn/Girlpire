@@ -161,6 +161,16 @@ TRANSLATIONS = {
         "pricing_anchor_title": "VIP Membership",
         "pricing_anchor_price": "$19/month",
         "pricing_anchor_note": "Less than one failed promo post or one underpriced PPV bundle.",
+        "vip_offer_title": "What you get:",
+        "vip_offer_item_1": "Exact pricing strategy (+conversion boost)",
+        "vip_offer_item_2": "DM scripts that convert followers to buyers",
+        "vip_offer_item_3": "30-day content plan",
+        "vip_offer_item_4": "Monetization system (step by step)",
+        "vip_offer_item_5": "Hidden growth tactics",
+        "vip_offer_result_note": "Potential upside depends on execution, positioning, and audience quality.",
+        "vip_pricing_message_1": "Clear checkout. No hidden fees.",
+        "vip_pricing_message_2": "Access and billing terms are shown before payment.",
+        "paywall_urgency": "Limited free analyses available today",
         "paywall_stack_title": "VIP Membership Includes:",
         "vip_feature_strategy": "AI Strategy Consultant",
         "vip_feature_plan": "30-Day Action Plan",
@@ -169,7 +179,7 @@ TRANSLATIONS = {
         "vip_feature_ppv": "PPV & Tips Revenue Plan",
         "vip_feature_updates": "Monthly Strategy Updates",
         "paywall_stack_note": "Built for creators who want a business-focused growth plan, not generic advice.",
-        "start_vip_membership": "Join Girlpire VIP",
+        "start_vip_membership": "🚀 Unlock Full Strategy Now",
         "risk_reversal": "Cancel anytime. Your strategy remains accessible while your membership is active.",
         "loss_aversion_copy": "If your current revenue model is under-optimized, waiting another month can cost more than the VIP membership.",
         "faq_title": "FAQ",
@@ -183,7 +193,7 @@ TRANSLATIONS = {
         "faq_a4": "No. It gives a structured business strategy based on your inputs.",
         "faq_q5": "Is my payment handled securely?",
         "faq_a5": "Payments are handled through LemonSqueezy. Girlpire does not store card details.",
-        "unlock_vip_strategy": "Unlock Girlpire VIP",
+        "unlock_vip_strategy": "🚀 Unlock Full Strategy Now",
         "trust_checkout_line1": "Secure checkout powered by LemonSqueezy.",
         "trust_checkout_line2": "No card information is stored by Girlpire.",
         "admin_email_tools_title": "Girlpire Admin",
@@ -191,8 +201,8 @@ TRANSLATIONS = {
         "vip_active": "Girlpire VIP Active",
         "vip_unlocked_message": "Your VIP strategy is unlocked",
         "vip_upgrade_message": "Upgrade to Girlpire VIP to unlock your strategy",
-        "pay_with_card": "Pay with Card 💳",
-        "pay_with_crypto": "Pay with Crypto 🪙",
+        "pay_with_crypto": "💰 Unlock with Crypto",
+        "pay_with_card": "🚀 Unlock Full Strategy Now",
         "open_crypto_payment": "Open Crypto Payment",
         "crypto_payment_ready": "Your crypto payment page is ready below.",
         "crypto_step_title": "Step 2: Open Your Crypto Checkout",
@@ -311,6 +321,7 @@ TRANSLATIONS = {
         "quick_strategy_vip_item_4": "Scaling system",
         "quick_strategy_urgency": "Free strategy previews are limited so VIP members can get the full planning workflow.",
         "quick_strategy_social_proof": "Built for creators who want to diagnose pricing, content, and monetization issues before spending on traffic.",
+        "quick_strategy_psychology_line": "This gap usually comes from pricing, positioning, or weak conversion mechanics.",
         "groq_fallback_missing": "Groq is not configured. Showing the built-in rule-based strategy consultant instead.",
         "groq_fallback_failed": "Groq could not respond right now. Showing the built-in rule-based strategy consultant instead.",
         "immediate_fix_title": "Immediate Fix (Next 7 Days)",
@@ -535,6 +546,16 @@ TRANSLATIONS = {
         "pricing_anchor_title": "VIP Uyelik",
         "pricing_anchor_price": "$19/ay",
         "pricing_anchor_note": "Bir basarisiz promosyon paylasimindan veya dusuk fiyatli bir PPV paketinden daha az.",
+        "vip_offer_title": "Neler Alacaksiniz:",
+        "vip_offer_item_1": "Net fiyatlama stratejisi (+donusum artisi)",
+        "vip_offer_item_2": "Takipcileri aliciya ceviren DM scriptleri",
+        "vip_offer_item_3": "30 gunluk icerik plani",
+        "vip_offer_item_4": "Adim adim monetizasyon sistemi",
+        "vip_offer_item_5": "Gizli buyume taktikleri",
+        "vip_offer_result_note": "Potansiyel artis uygulama kalitesi, konumlama ve kitle yapisina gore degisir.",
+        "vip_pricing_message_1": "Net checkout. Gizli ucret yok.",
+        "vip_pricing_message_2": "Erisim ve odeme kosullari odemeden once gosterilir.",
+        "paywall_urgency": "Bugun sinirli sayida ucretsiz analiz mevcut",
         "paywall_stack_title": "VIP Uyelik Icerigi:",
         "vip_feature_strategy": "AI Strategy Consultant",
         "vip_feature_plan": "30-Day Action Plan",
@@ -543,7 +564,7 @@ TRANSLATIONS = {
         "vip_feature_ppv": "PPV ve Bahsis Gelir Plani",
         "vip_feature_updates": "Aylik Strateji Guncellemeleri",
         "paywall_stack_note": "Genel tavsiye degil, is odakli buyume plani isteyen ureticiler icin tasarlandi.",
-        "start_vip_membership": "Girlpire VIPe Katil",
+        "start_vip_membership": "🚀 Tam Stratejinin Kilidini Ac",
         "risk_reversal": "Isteginiz zaman iptal edin. Uyelik aktif oldugu surece stratejiniz erisilebilir kalir.",
         "loss_aversion_copy": "Mevcut gelir modeliniz yeterince optimize degilse, bir ay daha beklemek VIP uyelikten daha pahaliya mal olabilir.",
         "faq_title": "SSS",
@@ -557,7 +578,7 @@ TRANSLATIONS = {
         "faq_a4": "Hayir. Girdilerinize gore yapilandirilmis bir is stratejisi sunar.",
         "faq_q5": "Odemem guvenli sekilde mi isleniyor?",
         "faq_a5": "Odemeler LemonSqueezy tarafindan islenir. Girlpire kart bilgisi saklamaz.",
-        "unlock_vip_strategy": "Girlpire VIPi Ac",
+        "unlock_vip_strategy": "🚀 Tam Stratejinin Kilidini Ac",
         "trust_checkout_line1": "Guvenli odeme LemonSqueezy tarafindan saglanir.",
         "trust_checkout_line2": "Girlpire kart bilgisi saklamaz.",
         "admin_email_tools_title": "Girlpire Admin",
@@ -565,8 +586,8 @@ TRANSLATIONS = {
         "vip_active": "Girlpire VIP Aktif",
         "vip_unlocked_message": "VIP stratejinizin kilidi acildi",
         "vip_upgrade_message": "Stratejinizi acmak icin Girlpire VIP'e gecin",
-        "pay_with_card": "Kart ile Ode 💳",
-        "pay_with_crypto": "Kripto ile Ode 🪙",
+        "pay_with_card": "🚀 Tam Stratejinin Kilidini Ac",
+        "pay_with_crypto": "💰 Kripto ile Kilidi Ac",
         "open_crypto_payment": "Kripto Odemesini Ac",
         "crypto_payment_ready": "Kripto odeme sayfaniz asagida hazir.",
         "crypto_step_title": "Adim 2: Kripto Odeme Sayfasini Ac",
@@ -685,6 +706,7 @@ TRANSLATIONS = {
         "quick_strategy_vip_item_4": "Olcekleme sistemi",
         "quick_strategy_urgency": "VIP uyeler tam planlama akisini alabilsin diye ucretsiz strateji onizlemeleri sinirlidir.",
         "quick_strategy_social_proof": "Trafik satin almadan once fiyatlama, icerik ve monetizasyon sorunlarini teshis etmek isteyen ureticiler icin tasarlandi.",
+        "quick_strategy_psychology_line": "Bu fark genelde fiyatlama, konumlama veya zayif donusum mekaniklerinden gelir.",
         "groq_fallback_missing": "Groq yapilandirilmamis. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "groq_fallback_failed": "Groq su anda yanit veremedi. Yerlesik kural tabanli strateji danismani gosteriliyor.",
         "immediate_fix_title": "Anlik Duzeltme (Sonraki 7 Gun)",
@@ -3678,6 +3700,7 @@ def render_quick_strategy_engine(is_paid: bool) -> None:
         t("quick_strategy_loss_title").format(amount=format_currency(float(loss))),
         t("loss_aversion_copy"),
     )
+    st.markdown(f"👉 {t('quick_strategy_psychology_line')}")
     st.markdown(f"### {t('quick_strategy_potential_title')}")
     growth_columns = st.columns(2)
     with growth_columns[0]:
@@ -3994,11 +4017,25 @@ def render_paywall(email: str) -> None:
     st.divider()
     st.subheader(t("paywall_title"))
     st.caption(t("paywall_desc"))
+    st.warning(f"⚠ {t('paywall_urgency')}")
     render_metric_card(
         t("pricing_anchor_title"),
         get_vip_price_label(),
         t("pricing_anchor_note"),
     )
+    render_list_card(
+        t("vip_offer_title"),
+        [
+            t("vip_offer_item_1"),
+            t("vip_offer_item_2"),
+            t("vip_offer_item_3"),
+            t("vip_offer_item_4"),
+            t("vip_offer_item_5"),
+        ],
+    )
+    st.caption(t("vip_offer_result_note"))
+    st.caption(f"💰 {t('vip_pricing_message_1')}")
+    st.caption(t("vip_pricing_message_2"))
 
     paywall_items = [
         t("vip_feature_strategy"),
