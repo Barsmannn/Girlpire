@@ -262,6 +262,13 @@ TRANSLATIONS = {
         "name_missing": "-",
         "download_all_users": "Download All Members CSV",
         "download_vip_users": "Download VIP Members CSV",
+        "grant_vip_title": "Grant VIP Access",
+        "grant_vip_desc": "Give one month of VIP access to any email address.",
+        "grant_vip_email": "VIP email",
+        "grant_vip_name": "Name (optional)",
+        "grant_vip_button": "Grant 1-Month VIP",
+        "grant_vip_success": "VIP access was granted to {email} for 30 days.",
+        "grant_vip_failed": "VIP access could not be granted. Check the email and try again.",
         "no_users_saved": "No users saved yet.",
         "no_new_users": "No new users in the last 7 days.",
         "no_vip_users": "No VIP users yet.",
@@ -700,6 +707,13 @@ TRANSLATIONS = {
         "name_missing": "-",
         "download_all_users": "Tum Uyeleri CSV Indir",
         "download_vip_users": "VIP Uyeleri CSV Indir",
+        "grant_vip_title": "VIP Erisimi Ver",
+        "grant_vip_desc": "Istediginiz e-posta adresine 1 aylik VIP erisimi verin.",
+        "grant_vip_email": "VIP e-posta",
+        "grant_vip_name": "Isim (opsiyonel)",
+        "grant_vip_button": "1 Aylik VIP Ver",
+        "grant_vip_success": "{email} icin 30 gunluk VIP erisimi verildi.",
+        "grant_vip_failed": "VIP erisimi verilemedi. E-postayi kontrol edip tekrar deneyin.",
         "no_users_saved": "Henuz kayitli kullanici yok.",
         "no_new_users": "Son 7 gunde yeni kullanici yok.",
         "no_vip_users": "Henuz VIP kullanici yok.",
@@ -1371,6 +1385,35 @@ def add_paid_user(email: str, name: str = "") -> bool:
     vip_memberships[normalized_email] = {
         "started_at": start_date.isoformat(),
         "expires_at": (start_date + timedelta(days=30)).isoformat(),
+    }
+    return write_email_store(
+        {"users": users, "paid_users": paid_users, "vip_memberships": vip_memberships}
+    )
+
+
+def grant_vip_membership(email: str, name: str = "", days: int = 30) -> bool:
+    normalized_email = str(email or "").strip().lower()
+    if not normalized_email:
+        return False
+
+    try:
+        duration_days = max(int(days), 1)
+    except (TypeError, ValueError):
+        duration_days = 30
+
+    email_store = ensure_email_store()
+    paid_users = list(email_store.get("paid_users", []))
+    users = list(email_store.get("users", []))
+    vip_memberships = dict(email_store.get("vip_memberships", {}))
+
+    if normalized_email not in paid_users:
+        paid_users.append(normalized_email)
+
+    users, _ = upsert_user_record(users, normalized_email, name)
+    start_date = datetime.now().date()
+    vip_memberships[normalized_email] = {
+        "started_at": start_date.isoformat(),
+        "expires_at": (start_date + timedelta(days=duration_days)).isoformat(),
     }
     return write_email_store(
         {"users": users, "paid_users": paid_users, "vip_memberships": vip_memberships}
@@ -7036,6 +7079,27 @@ def render_admin_panel(user_email: str, show_wrapper: bool = True) -> None:
         st.dataframe(build_admin_member_rows(vip_records), use_container_width=True, hide_index=True)
     else:
         st.caption(t("no_vip_users"))
+
+    st.subheader(t("grant_vip_title"))
+    st.caption(t("grant_vip_desc"))
+    with st.form("grant_vip_membership_form"):
+        grant_columns = st.columns(2)
+        with grant_columns[0]:
+            vip_email_input = st.text_input(t("grant_vip_email"))
+        with grant_columns[1]:
+            vip_name_input = st.text_input(t("grant_vip_name"))
+        grant_submitted = st.form_submit_button(
+            t("grant_vip_button"),
+            use_container_width=True,
+        )
+    if grant_submitted:
+        normalized_grant_email = str(vip_email_input or "").strip().lower()
+        if grant_vip_membership(normalized_grant_email, vip_name_input, days=30):
+            if normalized_grant_email == str(user_email or "").strip().lower():
+                st.session_state["premium_unlocked"] = True
+            st.success(t("grant_vip_success").format(email=normalized_grant_email))
+            st.rerun()
+        st.error(t("grant_vip_failed"))
 
     if st.button("Send Test Email"):
         try:
