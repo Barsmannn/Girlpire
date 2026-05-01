@@ -1076,25 +1076,73 @@ def has_real_secret_value(value: object) -> bool:
     return not any(token in normalized for token in placeholders)
 
 
-def auth_is_configured() -> bool:
-    required = (
-        secret_get("auth", "redirect_uri"),
-        secret_get("auth", "cookie_secret"),
-        secret_get("auth", "google", "client_id"),
-        secret_get("auth", "google", "client_secret"),
-        secret_get("auth", "google", "server_metadata_url"),
+def get_expected_redirect_uri() -> str:
+    base_url = get_app_url() or "http://localhost:8501"
+    split_url = urlsplit(base_url)
+    return urlunsplit(
+        (
+            split_url.scheme or "http",
+            split_url.netloc or "localhost:8501",
+            "/oauth2callback",
+            "",
+            "",
+        )
     )
-    return all(has_real_secret_value(value) for value in required)
+
+
+def get_auth_configuration_issues() -> list[str]:
+    issues: list[str] = []
+    redirect_uri = str(secret_get("auth", "redirect_uri", default="") or "").strip()
+    cookie_secret = str(secret_get("auth", "cookie_secret", default="") or "").strip()
+    client_id = secret_get("auth", "google", "client_id")
+    client_secret = secret_get("auth", "google", "client_secret")
+    server_metadata_url = str(
+        secret_get("auth", "google", "server_metadata_url", default="") or ""
+    ).strip()
+
+    if not has_real_secret_value(redirect_uri):
+        issues.append("Missing auth.redirect_uri in Streamlit secrets.")
+    else:
+        parsed_redirect = urlsplit(redirect_uri)
+        if parsed_redirect.scheme not in {"http", "https"} or not parsed_redirect.netloc:
+            issues.append("auth.redirect_uri must be an absolute URL.")
+        if parsed_redirect.path.rstrip("/") != "/oauth2callback":
+            issues.append("auth.redirect_uri must end with /oauth2callback.")
+
+        expected_redirect = get_expected_redirect_uri()
+        if has_real_secret_value(expected_redirect):
+            expected_parsed = urlsplit(expected_redirect)
+            if (
+                expected_parsed.netloc
+                and "localhost" not in expected_parsed.netloc.lower()
+                and parsed_redirect.netloc.lower() != expected_parsed.netloc.lower()
+            ):
+                issues.append(
+                    f"auth.redirect_uri host does not match your app URL. Expected something like {expected_redirect}"
+                )
+
+    if not has_real_secret_value(cookie_secret):
+        issues.append("Missing auth.cookie_secret in Streamlit secrets.")
+    if not has_real_secret_value(client_id):
+        issues.append("Missing auth.google.client_id in Streamlit secrets.")
+    if not has_real_secret_value(client_secret):
+        issues.append("Missing auth.google.client_secret in Streamlit secrets.")
+    if not has_real_secret_value(server_metadata_url):
+        issues.append("Missing auth.google.server_metadata_url in Streamlit secrets.")
+    else:
+        parsed_metadata = urlsplit(server_metadata_url)
+        if parsed_metadata.scheme not in {"http", "https"} or not parsed_metadata.netloc:
+            issues.append("auth.google.server_metadata_url must be an absolute URL.")
+
+    return issues
+
+
+def auth_is_configured() -> bool:
+    return not get_auth_configuration_issues()
 
 
 def google_login_ready() -> bool:
-    try:
-        return bool(
-            has_real_secret_value(st.secrets["auth"]["google"]["client_id"])
-            and has_real_secret_value(st.secrets["auth"]["google"]["client_secret"])
-        )
-    except Exception:
-        return False
+    return auth_is_configured()
 
 
 def is_logged_in() -> bool:
@@ -3188,6 +3236,8 @@ def render_user_menu() -> None:
 #    http://localhost:8501/oauth2callback
 # 4. Paste client_id and client_secret into secrets.toml
 def render_google_login_screen() -> None:
+    auth_issues = get_auth_configuration_issues()
+    login_disabled = (not auth_is_supported()) or bool(auth_issues)
     preview_items = [
         (t("vip_feature_strategy"), t("preview_benefit_strategy")),
         (t("vip_feature_plan"), t("preview_benefit_plan")),
@@ -3219,8 +3269,19 @@ def render_google_login_screen() -> None:
             t("continue_google"),
             on_click=lambda: st.login("google"),
             use_container_width=True,
+            disabled=login_disabled,
         )
         st.markdown("</div>", unsafe_allow_html=True)
+        if not auth_is_supported():
+            st.warning("This Streamlit build does not expose st.login / st.user / st.logout.")
+        elif auth_issues:
+            st.warning(t("google_setup_missing"))
+            for issue in auth_issues:
+                st.caption(f"- {issue}")
+            st.info(
+                f"Expected deployed redirect URI: {get_expected_redirect_uri()}"
+            )
+            st.info(t("google_setup_hint"))
     with right:
         st.markdown(
             f"""
@@ -7203,10 +7264,8 @@ def main() -> None:
     sync_language_from_query_params()
     detect_email_traffic()
     render_styles()
-    if not google_login_ready():
-        st.warning(
-            "Google login not configured. Paste your Client ID and Secret into .streamlit/secrets.toml"
-        )
+    if not auth_is_supported() or not auth_is_configured():
+        render_google_login_screen()
         st.stop()
 
     try:

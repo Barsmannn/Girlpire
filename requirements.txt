@@ -1,5 +1,5 @@
 streamlit
-Authlib
+Authlib==1.6.5
 python-dotenv
 resend
 fastapi
