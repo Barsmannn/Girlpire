@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import textwrap
+import traceback
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -7257,5 +7258,9 @@ def main() -> None:
 
     render_footer()
 
-
-main()
+try:
+    main()
+except Exception as exc:
+    st.error("Application error")
+    st.exception(exc)
+    st.code(traceback.format_exc())
